@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: Inter, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #fff;
+    }
+
+    /* Loader overlay */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      display: none;
+    }
+
+    /* Spinner */
+    .loader {
+      width: 36px;
+      height: 36px;
+      border: 4px solid #ddd;
+      border-top: 4px solid #2684ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+
+    .button-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #e0e0e0;
+      border-top: 2px solid #2684ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+
+    /* Disable row while saving */
+    tr.saving {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .readonly-row {
+      background-color: #f2f2f2;
+      color: #999;
+    }
+
+    .readonly-row input {
+      background-color: #e6e6e6;
+      pointer-events: none;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 20px;
+    }
+
+    .toggle input {
+      display: none;
+    }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #ccc;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .slider:before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: 0.2s;
+    }
+
+    input:checked + .slider {
+      background: #2684ff;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .terminated-row {
+      background-color: #f5f5f5;
+      color: #9aa0a6;
+    }
+
+    .terminated-row td {
+      font-style: italic;
+    }
+
+    .terminated-label {
+      font-size: 12px;
+      color: #8a8a8a;
+      background: #eaeaea;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+
+    th {
+      background: #f4f6f8;
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: #fafafa;
+    }
+
+    .loader {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    button.loading {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .status {
+      margin-bottom: 16px;
+    }
+
+    .status-label {
+      font-size: 14px;
+      color: #666;
+      margin-right: 6px;
+    }
+
+    .status-value {
+      font-size: 20px;       /* ⬅ bigger */
+      font-weight: 700;      /* ⬅ bolder */
+      color: #111;
+    }
+
+
+    select,
+    input[type="datetime-local"],
+    input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #888;
+      margin-top: 6px;
+    }
+  </style>
+  <script src="https://live.zwidgets.com/js-sdk/1.4/ZohoEmbededAppSDK.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="status">
+      <span class="status-label">Lead Status</span>
+      <span id="currentStatus" class="status-value">—</span>
+    </div>
+
+    <div class="toggle-row">
+      <label class="toggle">
+        <input type="checkbox" id="followUpToggle" onchange="onFollowUpToggle(this)">
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label">Follow Up Reminder</span>
+    </div>
+    
+    <div id="automationStatus" class="hint"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Lead Status</th>
+          <th>Follow Up</th>
+          <th>Recipient</th>
+          <th>Follow Up Schedule</th>
+          <!-- <th>Subject</th>
+        <th>Template</th> -->
+          <th class="center">Action</th>
+          <!-- <th>Reminder</th> -->
+        </tr>
+      </thead>
+      <tbody id="followup-body"></tbody>
+    </table>
+
+    <div class="hint">
+      Date & time shown in your local timezone
+    </div>
+
+    <script>
+      let leadDetails = null;
+      let currentLeadId = null;
+      const stagedUpdates = {};
+      let leadData = {};
+      const FOLLOW_UPS = [
+        { idx: 1, intDay: 1 },
+        { idx: 2, intDay: 3 },
+        { idx: 3, intDay: 7 }
+      ];
+
+
+      function toDateTimeLocal(crmDateTime) {
+        if (!crmDateTime) return "";
+        let dt = crmDateTime.split("+")[0].split("Z")[0];
+        return dt.substring(0, 16); // YYYY-MM-DDTHH:mm
+      }
+
+      const loadLeadDetails = async (leadId) => {
+        const lead = await ZOHO.CRM.API.getRecord({
+          Entity: "Leads",
+          RecordID: leadId
+        });
+
+        return lead;
+      }
+
+      function getFollowUpField(index, total) {
+        if (index === total - 3) return "follow_up_1";
+        if (index === total - 2) return "follow_up_2";
+        if (index === total - 1) return "follow_up_3";
+        return null;
+      }
+
+      function isPastDateTime(dateTimeStr) {
+        if (!dateTimeStr) return false;
+
+        const followUpTime = new Date(dateTimeStr).getTime();
+        const now = Date.now();
+
+        return followUpTime < now;
+      }
+
+
+
+      function renderFollowUps(lead) {
+        const tbody = document.getElementById("followup-body");
+        tbody.innerHTML = "";
+
+        const reminders = lead["Follow_Up_Reminders"] || [];
+        const lastThree = reminders.slice(-3); // ✅ ONLY LAST 3
+        const automationEnabled = lead["Allow_Automation"] === true;
+
+
+        lastThree.forEach((item, index) => {
+          const followUpField = `Follow_Up_${index + 1}`;
+          // const isEditable = automationEnabled;
+
+          const isTerminated = !item["Follow_Up_Scheduled"];
+          const isPast = isPastDateTime(item["Follow_Up_Scheduled"]);
+
+          const isEditable =automationEnabled && !isPast && !isTerminated;
+
+
+
+          tbody.innerHTML += `
+           <tr id="${item.id}" class="${ isTerminated ? 'terminated-row' : isEditable ? '' : 'readonly-row' }">
+
+              <td>${item["Lead_Status"] || "-"}</td>
+              <td>${item["Follow_Up"] || "-"}</td>
+              <td>${item["Recipient"] || "-"}</td>
+
+             <td>
+                ${
+                  isTerminated
+                    ? `<span class="terminated-label">Follow-up terminated</span>`
+                    : `<input type="datetime-local"
+                          value="${toDateTimeLocal(item["Follow_Up_Scheduled"])}"
+                          ${isEditable ? "" : "disabled"}
+                          onfocus="storePreviousValue(this)"
+                          onclick="storePreviousValue(this)"
+                          onchange="${
+                            isEditable
+                              ? `onFollowUpChange(this, '${item.id}', '${followUpField}')`
+                              : ""
+                          }">`
+                }
+              </td>
+
+
+              <td class="center">
+                ${
+                  isEditable
+                    ? `<button style="display:none"
+                        onclick="saveFollowUp('${item.id}', '${followUpField}', this)">
+                        Submit
+                      </button>`
+                    : ""
+                }
+              </td>
+
+
+            </tr>
+          `;
+        });
+      }
+
+
+      function storePreviousValue(input) {
+        input.dataset.prevValue = input.value || "";
+      }
+
+
+      function onFollowUpChange(input, subformRowId, leadField) {
+        const value = input.value;
+        const prevValue = input.dataset.prevValue || "";
+        const row = document.getElementById(subformRowId);
+        const btn = row ? row.querySelector("button") : null;
+
+        // 🚫 Empty value
+        if (!value) {
+          alert("Re-add date and time");
+          input.value = prevValue;
+          input.focus();
+          if (btn) btn.style.display = "none";
+          return;
+        }
+
+        // 🚫 Order validation
+        if (!isFollowUpOrderValid(leadField, value)) {
+          input.value = prevValue;   // restore
+          input.focus();
+          if (btn) btn.style.display = "none";
+          return;
+        }
+
+        // ✅ Valid → stage update
+        window._pendingUpdate = {
+          value,
+          subformRowId,
+          leadField
+        };
+
+        // ✅ show submit button
+        if (btn) {
+          btn.style.display = "inline-block";
+        }
+      }
+
+
+      
+
+      function initializeStagedUpdates(lead) {
+        console.log(lead);
+
+        [1, 2, 3].forEach(idx => {
+          stagedUpdates[idx] = {
+            [`Follow_Up_${idx}_Subject`]:
+              lead[`Follow_Up_${idx}_Subject`] || "",
+            [`Follow_up_${idx}_Email_Template`]:
+              lead[`Follow_up_${idx}_Email_Template`] || ""
+          };
+        });
+
+        console.log("stage updates", stagedUpdates);
+
+      }
+
+      function toZohoDateTime(value) {
+        if (!value) return null;
+
+        // If seconds already exist, return as-is
+        if (value.length === 19) return value;
+
+        // Convert YYYY-MM-DDTHH:mm → YYYY-MM-DDTHH:mm:00
+        return value + ":00";
+      }
+
+
+      function stageValue(idx, field, value) {
+        if (!stagedUpdates[idx]) stagedUpdates[idx] = {};
+        stagedUpdates[idx][field] = value;
+      }
+
+      // check user input value validation
+      
+      function getCurrentFollowUpValues() {
+        const values = {};
+
+        document.querySelectorAll("#followup-body tr").forEach((row, index) => {
+          const input = row.querySelector("input[type='datetime-local']");
+          if (input && input.value) {
+            values[`Follow_Up_${index + 1}`] = new Date(input.value).getTime();
+          }
+        });
+
+        return values;
+      }
+
+      function isFollowUpOrderValid(leadField, newValue) {
+        const times = getCurrentFollowUpValues();
+        const newTime = new Date(newValue).getTime();
+
+        if (leadField === "Follow_Up_2") {
+          if (times.Follow_Up_1 && newTime <= times.Follow_Up_1) {
+            alert("Follow-up 2 must be later than Follow-up 1");
+            return false;
+          }
+        }
+
+        if (leadField === "Follow_Up_3") {
+          if (
+            (times.Follow_Up_1 && newTime <= times.Follow_Up_1) ||
+            (times.Follow_Up_2 && newTime <= times.Follow_Up_2)
+          ) {
+            alert("Follow-up 3 must be later than Follow-up 1 and Follow-up 2");
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+
+
+
+
+      function saveFollowUp(subformRowId, leadField, btn) {
+        const pending = window._pendingUpdate;
+        const row = btn.closest("tr");
+        const input = row ? row.querySelector("input[type='datetime-local']") : null;
+
+        // 🚫 Guard: missing or invalid pending data
+        if (
+          !pending ||
+          !pending.value ||
+          pending.leadField !== leadField
+        ) {
+          alert("Re-add date and time");
+
+          // restore UI so user can re-enter value
+          if (btn) {
+            btn.style.display = "none";
+            btn.disabled = false;
+            btn.innerHTML = "Submit";
+          }
+
+          if (input) {
+            input.disabled = false;
+            input.focus();
+          }
+
+          return; // ⛔ stop execution
+        }
+
+        const zohoDate = toZohoDateTime(pending.value);
+
+        // 🔄 START SPINNER
+        btn.dataset.originalText = btn.innerHTML;
+        btn.innerHTML = `<span class="button-spinner"></span>`;
+        btn.disabled = true;
+        input.disabled = true;
+
+        // 1️⃣ Update Lead field
+        ZOHO.CRM.API.updateRecord({
+          Entity: "Leads",
+          RecordID: currentLeadId,
+          APIData: {
+            [leadField]: zohoDate,
+            id: currentLeadId
+          }
+        })
+          .then(() => {
+            // 2️⃣ Update Subform row
+            return updateSubformRow(subformRowId, zohoDate);
+          })
+          .then(() => {
+            // ✅ SUCCESS
+            btn.innerHTML = "Submit";
+            btn.disabled = false;
+            input.disabled = false;
+            btn.style.display = "none";
+
+            delete window._pendingUpdate;
+          })
+          .catch(err => {
+            console.error("Update failed", err);
+
+            btn.innerHTML = btn.dataset.originalText || "Submit";
+            btn.disabled = false;
+            input.disabled = false;
+
+            alert("Failed to save follow-up. Please try again.");
+          });
+      }
+
+
+      function updateSubformRow(subformRowId, newDate) {
+        return ZOHO.CRM.API.getRecord({
+          Entity: "Leads",
+          RecordID: currentLeadId
+        }).then(resp => {
+          let lead = resp.data[0];
+          let subform = lead.Follow_Up_Reminders || [];
+
+          subform.forEach(row => {
+            if (row.id === subformRowId) {
+              row.Follow_Up_Scheduled = newDate;
+            }
+          });
+
+          return ZOHO.CRM.API.updateRecord({
+            Entity: "Leads",
+            RecordID: currentLeadId,
+            APIData: {
+              Follow_Up_Reminders: subform,
+              id: currentLeadId
+            }
+          });
+        });
+      }
+
+
+
+      function handleEnter(event, idx) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          saveFollowUp(idx);
+        }
+      }
+
+      async function updateField(fieldName, value) {
+        const payload = {};
+        payload[fieldName] = value === "" ? null : value;
+        console.log("payload", payload, currentLeadId);
+        payload["id"] = currentLeadId;
+        try {
+          let val = await ZOHO.CRM.API.updateRecord({
+            Entity: "Leads",
+            RecordID: currentLeadId,
+            APIData: payload
+          });
+          console.log("val", val);
+        } catch (error) {
+          console.error("Error updating field", error);
+        }
+      }
+
+      function setRowSaving(idx, saving) {
+        const row = document.getElementById(`followup-row-${idx}`);
+        if (!row) return;
+
+        if (saving) {
+          row.classList.add("saving");
+        } else {
+          row.classList.remove("saving");
+        }
+      }
+
+      function onFollowUpToggle(toggle) {
+        const enabled = toggle.checked;
+        toggle.disabled = true;
+
+        ZOHO.CRM.API.updateRecord({
+          Entity: "Leads",
+          RecordID: currentLeadId,
+          APIData: {
+            Allow_Automation: enabled,
+            id: currentLeadId
+          }
+        })
+          .then(() => {
+            leadDetails["Allow_Automation"] = enabled;
+            showAutomationStatus(enabled);
+            renderFollowUps(leadDetails); // 🔄 re-render UI
+          })
+          .catch(() => {
+            toggle.checked = !enabled;
+            alert("Failed to update automation");
+          })
+          .finally(() => {
+            toggle.disabled = false;
+          });
+      }
+
+
+
+      function showAutomationStatus(enabled) {
+        document.getElementById("automationStatus").innerText =
+          enabled
+            ? "Automation is enabled. Upcoming reminders will trigger."
+            : "Automation is paused. No upcoming reminders will trigger.";
+      }
+
+
+
+      function applyAutomationRules(reminderEnabled) {
+        // const allowManualEdit = reminderEnabled && !automationEnabled;
+
+        document
+          .querySelectorAll("input[type='datetime-local'], button")
+          .forEach(el => {
+            el.disabled = !reminderEnabled;
+          });
+
+        document
+          .querySelectorAll("tr")
+          .forEach(row => {
+            row.classList.toggle("readonly-row", !reminderEnabled);
+          });
+      }
+
+
+
+      function showLoader() {
+        document.getElementById("loaderOverlay").style.display = "flex";
+      }
+
+      function hideLoader() {
+        document.getElementById("loaderOverlay").style.display = "none";
+      }
+
+
+      ZOHO.embeddedApp.on("PageLoad", async function (data) {
+        console.log("PageLoad event data", data);
+        // ZOHO.CRM.UI.Resize({
+        //   height: "70%",
+        //   width: "70%"
+        // });
+        currentLeadId = data.EntityId[0];
+        console.log("Resolved leadId after PageLoad", currentLeadId);
+
+        if (!currentLeadId) {
+          showMessage("Lead ID missing; open widget via Lead button.", "error");
+          return;
+        }
+
+        let val = await loadLeadDetails(currentLeadId);
+        console.log("val", val.data[0]);
+        leadDetails = val.data[0];
+
+        document.getElementById("currentStatus").innerText = leadDetails["Lead_Status"] || "-";
+        console.log("follow up time", leadDetails["Follow_Up_1"]);
+
+        renderFollowUps(leadDetails);
+        initializeStagedUpdates(leadDetails);
+
+        // const allowAutomation =leadDetails["Allow_Automation"] === true;
+
+        // document.getElementById("followUpToggle").checked = allowAutomation;
+
+        const allowAutomation = leadDetails["Allow_Automation"] === true;
+
+        document.getElementById("followUpToggle").checked = allowAutomation;
+        showAutomationStatus(allowAutomation);
+
+
+      });
+
+      ZOHO.embeddedApp.init();
+    </script>
+
+    <div id="loaderOverlay" class="loader-overlay">
+      <div class="loader"></div>
+    </div>
+
+</body>
+
+</html>

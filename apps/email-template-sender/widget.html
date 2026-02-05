@@ -593,14 +593,22 @@
   <body>
     <div class="card">
       <div class="panel" id="formPanel">
+        <div id="leadStatusBar"
+          style="margin-bottom:12px; padding:8px 12px; background:#f1f5f9; border-radius:6px; font-size:0.9rem;">
+          <strong>Lead Status:</strong>
+          <span id="leadStatusValue" style="margin-left:6px; color:#0f172a;">—</span>
+        </div>
+
         <h2>Select Form to Send</h2>
 
-        <select id="templateSelect">
-          <option value="">Select Form Template</option>
-        </select>
+        <div id="templateSection">
+          <select id="templateSelect">
+            <option value="">Select Form Template</option>
+          </select>
+        </div>
 
         <div id="questionPreview" style="margin-top:1rem;"></div>
-
+        <div id="customFormSection">
         <div id="additionalQuestionContainer" style="margin-top: 1rem;">
           <div style="margin-bottom: 10px;">
             <label for="formTitleInput">Form Title</label>
@@ -618,6 +626,7 @@
             style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
             <!-- Added questions appear here -->
           </div>
+        </div>
         </div>
 
         <div class="button-row">
@@ -640,6 +649,7 @@
 
     <script>
       let currentLeadId = null;
+      let currentLeadStatus = "";
       let selectedQuestions = [];
       let leadEmailOptOut = false;
       const msgEl = document.getElementById("msg");
@@ -659,13 +669,13 @@
 
       const log = (...args) => console.log("[LeadFormWidget]", ...args);
 
-      const escapeHtml = (value = "") => value
-        .toString()
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        const escapeHtml = (value = "") => value
+          .toString()
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
 
       const describeError = (err) => {
         if (!err) return "Unknown error";
@@ -695,16 +705,28 @@
       const loadLeadDetails = async (leadId) => {
         if (!leadId) return;
         log("Fetching lead details", leadId);
+
         try {
           const resp = await ZOHO.CRM.API.getRecord({
             Entity: "Leads",
             RecordID: leadId
           });
+
           const record = Array.isArray(resp.data) ? resp.data[0] : null;
+
           leadEmailOptOut = Boolean(record && record.Email_Opt_Out);
+          currentLeadStatus = record?.Lead_Status || "";
+
+          /* 🔹 Update UI */
+          const statusEl = document.getElementById("leadStatusValue");
+          if (statusEl) {
+            statusEl.textContent = currentLeadStatus || "—";
+          }
+
         } catch (err) {
           console.error("Error fetching lead details", err);
           leadEmailOptOut = false;
+          currentLeadStatus = "";
         } finally {
           updateOptOutNotice();
           setButtonState();
@@ -761,13 +783,30 @@
 
         const canAct = hasLead && (hasTemplate || hasQuestions);
         // Mutually exclusive usage (unchanged)
-        formTitleInput.disabled = hasTemplate;
-        additionalQuestionInput.disabled = hasTemplate;
-        addQuestionBtn.disabled = hasTemplate;
-        selectEl.disabled = hasQuestions;
+        // formTitleInput.disabled = hasTemplate;
+        // additionalQuestionInput.disabled = hasTemplate;
+        // addQuestionBtn.disabled = hasTemplate;
+        // selectEl.disabled = hasQuestions;
+
+        const templateSection = document.getElementById("templateSection");
+        const customFormSection = document.getElementById("customFormSection");
+
+        /* 🔁 VISIBILITY CONTROL */
+        if (hasQuestions) {
+          templateSection.style.display = "none";
+          customFormSection.style.display = "block";
+        } else if (hasTemplate) {
+          templateSection.style.display = "block";
+          customFormSection.style.display = "none";
+        } else {
+          templateSection.style.display = "block";
+          customFormSection.style.display = "block";
+        }
 
         if (generateLinkBtn) {
-          generateLinkBtn.disabled = !hasLead;
+          generateLinkBtn.disabled = !hasLead || (!hasTemplate && !hasQuestions);
+          sendBtn.disabled = leadEmailOptOut || !hasLead || (!hasTemplate && !hasQuestions);
+
         }
         const sendDisabled = leadEmailOptOut || !hasLead;
         sendBtn.disabled = sendDisabled;
@@ -1357,7 +1396,7 @@
         data.forEach(function (record) {
           // If is_master is false, skip this record? Or handle it differently?
           // The query says: "in show responses of additinal question their is field is_master : false and then handle this type of thing also"
-          // Assuming we want to show it maybe with a different style or just ensure it renders?
+          // Assuming we want to show it mayUse a guest or secondary network
 
           // Let's add a visual indicator if it's NOT a master form (i.e. custom/additional questions form)
           // The field might be boolean or string "false"
@@ -1410,7 +1449,7 @@
               if (key === "is_master") return;
               // ... (existing logic)
               const val = record[key];
-              if (Array.isArray(val) && val.length === 0) return;
+              if (val === "" || (Array.isArray(val) && val.length === 0)) return;
 
               const label = key.replace(/_/g, " ");
               const valuesArray = Array.isArray(val) ? val : [val];
@@ -1746,6 +1785,33 @@
             "success"
           );
           addFormLink(formLink);
+
+          if ( addedQuestions.length > 0 && currentLeadStatus !== "Under Review" ) {
+            const confirmChange = confirm(
+              "Do you want to change Lead Status to 'Additional Information Requested'?"
+            );
+
+            if (confirmChange) {
+              try {
+                let resp =await ZOHO.CRM.FUNCTIONS.execute("executeTransition", {
+                  arguments: JSON.stringify({
+                    leadId: currentLeadId,
+                    status: "Request More Info"
+                  })
+                });
+                console.log("resp show for change of status",resp);
+                
+
+                /* Update UI immediately */
+                currentLeadStatus = "Additional Information Requested";
+                const statusEl = document.getElementById("leadStatusValue");
+                if (statusEl) statusEl.textContent = currentLeadStatus;
+
+              } catch (err) {
+                console.error("Failed to update lead status", err);
+              }
+            }
+          }
 
           if (formPayload) {
             formTitleInput.value = "";

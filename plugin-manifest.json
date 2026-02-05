@@ -13,6 +13,45 @@
       "scope": [
         "ZohoCRM.modules.all"
       ]
+    },
+    {
+      "name": "Master Response",
+      "id": "master",
+      "url": "/apps/master/widget.html",
+      "location": {
+        "crm.detail.button": [
+          "Leads"
+        ]
+      },
+      "scope": [
+        "ZohoCRM.modules.all"
+      ]
+    },
+    {
+      "name": "Dynamic FollowUp",
+      "id": "dynamic-followup",
+      "url": "/apps/dynamic-followup/widget.html",
+      "location": {
+        "crm.detail.button": [
+          "Leads"
+        ]
+      },
+      "scope": [
+        "ZohoCRM.modules.all"
+      ]
+    },
+    {
+      "name": "Deal Conversion Form",
+      "id": "deal-conversion",
+      "url": "/apps/deal-conversion/widget.html",
+      "location": {
+        "crm.detail.button": [
+          "Leads"
+        ]
+      },
+      "scope": [
+        "ZohoCRM.modules.all"
+      ]
     }
   ]
 }

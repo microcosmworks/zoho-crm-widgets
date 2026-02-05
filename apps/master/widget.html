@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Master Response</title>
+
+  <style>
+    body {
+  font-family: Inter, Open Sans, sans-serif;
+  margin: 0;
+  padding: 1.5rem;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin-top: 0;
+}
+
+/* =========================
+   Response Card
+========================= */
+.response-card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.accordion-header {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.accordion-content {
+  display: none;
+  padding: 16px;
+}
+
+.accordion-content.open {
+  display: block;
+}
+
+/* =========================
+   Q → A LIST (ONLY LAYOUT)
+========================= */
+.qa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qa-row {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin:4px
+}
+
+.qa-question {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.qa-answer {
+  font-size: 0.95rem;
+  color: #0f172a;
+  word-break: break-word;
+  border-left: 1px solid #e5e7eb;   /* vertical separator */
+
+}
+
+/* =========================
+   MEDIA PREVIEW
+========================= */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.media-card {
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 6px;
+  background: #ffffff;
+}
+
+.media-card img,
+.media-card video {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.media-card__action {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(15, 23, 42, 0.75);
+  color: #ffffff;
+
+  border-radius: 50%;
+  text-decoration: none;
+
+  z-index: 5;
+}
+
+.media-card__action svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 768px) {
+  .qa-row {
+    grid-template-columns: 1fr;
+  }
+
+  .qa-question {
+    margin-bottom: 4px;
+  }
+}
+
+/* =========================
+   PLACEHOLDER
+========================= */
+.placeholder {
+  color: #64748b;
+  text-align: center;
+  padding: 1rem;
+}
+
+  </style>
+
+  <script src="https://live.zwidgets.com/js-sdk/1.4/ZohoEmbededAppSDK.min.js"></script>
+</head>
+
+<body>
+  <!-- <h1>Master Response</h1> -->
+  <div class="panel" id="responsesPanel">
+    <div id="responsesSection" class="placeholder">
+      Select a lead to load responses.
+    </div>
+  </div>
+
+<script>
+/* ----------------- Helpers ----------------- */
+
+const CREATOR_BASE = "https://creatorapp.zohocloud.ca";
+      const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"];
+      const VIDEO_EXTENSIONS = [".mp4", ".mov", ".wmv", ".flv", ".avi", ".mkv", ".webm"];
+      const FILE_EXTENSION_GROUPS = {
+        pdf: [".pdf"],
+        doc: [".doc", ".docx"],
+        sheet: [".xls", ".xlsx", ".csv"],
+        ppt: [".ppt", ".pptx"],
+        audio: [".mp3", ".wav", ".aac", ".ogg", ".m4a"],
+        zip: [".zip", ".rar", ".7z"]
+      };
+      const TYPE_META = {
+        image: { chip: "Image", label: "Image" },
+        video: { chip: "Video", label: "Video" },
+        pdf: { chip: "PDF", label: "PDF" },
+        doc: { chip: "DOC", label: "Document" },
+        sheet: { chip: "Sheet", label: "Spreadsheet" },
+        ppt: { chip: "PPT", label: "Presentation" },
+        audio: { chip: "Audio", label: "Audio" },
+        zip: { chip: "ZIP", label: "Archive" },
+        file: { chip: "File", label: "File" }
+      };
+      const ICONS = {
+        download: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v10"/>
+            <path d="M6 11l6 6 6-6"/>
+            <path d="M5 19h14"/>
+          </svg>`,
+        image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="M21 16l-5-5-4 4-2-2-4 4" />
+          </svg>`,
+        video: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M10 9l5 3-5 3z" />
+            <path d="M7 4v16" />
+          </svg>`,
+        pdf: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+            <path d="M14 2v6h6" />
+            <path d="M8 15h2a2 2 0 0 0 0-4H8v4zm6-4h2m-2 4v-4m2 4v-4m2 4h1" />
+          </svg>`,
+        doc: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+            <path d="M14 2v6h6" />
+            <path d="M8 13h8m-8 4h5" />
+          </svg>`,
+        sheet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M4 9h16M4 15h16M12 3v18" />
+          </svg>`,
+        ppt: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M12 8a4 4 0 1 1 0 8h-3V8h3z" />
+          </svg>`,
+        audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>`,
+        zip: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="2" />
+            <path d="M12 6v2m0 2v2m0 2v4" />
+            <path d="M10 6h4" />
+          </svg>`,
+        file: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+            <path d="M14 2v6h6" />
+          </svg>`
+      };
+
+      const stripQuery = (value = "") => value.split("?")[0];
+
+      const isLikelyUrl = (value = "") => {
+        if (!value || typeof value !== "string") return false;
+        const trimmed = value.trim();
+        if (!trimmed) return false;
+        if (
+          trimmed.startsWith("http://") ||
+          trimmed.startsWith("https://") ||
+          trimmed.startsWith("//") ||
+          trimmed.startsWith("/api/")
+        ) {
+          return true;
+        }
+        return /^data:(image|video|application|audio)\//i.test(trimmed);
+      };
+
+      const getFileExtension = (value = "") => {
+        if (!value || typeof value !== "string") return "";
+        const clean = stripQuery(value).toLowerCase();
+        const dotIndex = clean.lastIndexOf(".");
+        if (dotIndex === -1) return "";
+        return clean.slice(dotIndex);
+      };
+
+      const coerceValueToString = (value) => {
+        if (value === null || value === undefined) return "";
+        if (typeof value === "string") return value;
+        if (typeof value === "number" || typeof value === "boolean") return String(value);
+        if (typeof value === "object") {
+          const urlCandidate = pickMetaString(value, URL_KEYS);
+          if (urlCandidate) return urlCandidate;
+          const fallback = pickMetaString(value, [
+            "value",
+            "display_value",
+            "displayValue",
+            "name",
+            "label"
+          ]);
+          return fallback || "";
+        }
+        return "";
+      };
+
+      const deriveFileNameFromUrl = (value = "") => {
+        const clean = stripQuery(value);
+        if (!clean) return "";
+        const segments = clean.split("/");
+        return segments.pop() || "";
+      };
+
+      const extractQueryValues = (value = "") => {
+        if (!value || typeof value !== "string") return [];
+        const queryIndex = value.indexOf("?");
+        if (queryIndex === -1) return [];
+        const queryString = value.slice(queryIndex + 1);
+        if (!queryString) return [];
+
+        return queryString
+          .split("&")
+          .map((segment) => {
+            const [, paramValue = ""] = segment.split("=");
+            try {
+              return decodeURIComponent(paramValue || "").trim();
+            } catch (err) {
+              return (paramValue || "").trim();
+            }
+          })
+          .filter(Boolean);
+      };
+
+      const pickMetaString = (meta, keys = []) => {
+        if (!meta || typeof meta !== "object") return "";
+        for (const key of keys) {
+          const candidate = meta[key];
+          if (typeof candidate === "string" && candidate.trim()) {
+            return candidate.trim();
+          }
+        }
+        return "";
+      };
+
+      const URL_KEYS = [
+        "download_url",
+        "downloadUrl",
+        "file_url",
+        "fileUrl",
+        "url",
+        "href",
+        "link",
+        "link_url",
+        "linkUrl",
+        "response_url",
+        "responseUrl",
+        "attachment_url",
+        "attachmentUrl",
+        "source_url",
+        "sourceUrl"
+      ];
+
+      const collectCandidateStrings = (value, meta) => {
+        const candidates = [value, ...extractQueryValues(value)];
+        if (meta && typeof meta === "object") {
+          [
+            "file_name",
+            "fileName",
+            "filename",
+            "name",
+            "display_name",
+            "displayName",
+            "display_value",
+            "displayValue",
+            "value"
+          ].forEach((key) => {
+            const candidate = meta[key];
+            if (typeof candidate === "string" && candidate.trim()) {
+              candidates.push(candidate.trim());
+            }
+          });
+        }
+        return candidates;
+      };
+
+      const extensionIsKnown = (ext) => {
+        if (!ext) return false;
+        if (IMAGE_EXTENSIONS.includes(ext) || VIDEO_EXTENSIONS.includes(ext)) return true;
+        return Object.values(FILE_EXTENSION_GROUPS).some((group) => group.includes(ext));
+      };
+
+      const findExtensionFromCandidates = (value, meta) => {
+        const candidates = collectCandidateStrings(value, meta);
+        let fallbackExt = "";
+
+        for (const candidate of candidates) {
+          const ext = getFileExtension(candidate);
+          if (!ext) continue;
+          if (extensionIsKnown(ext)) {
+            return ext;
+          }
+          if (!fallbackExt) {
+            fallbackExt = ext;
+          }
+        }
+
+        return fallbackExt;
+      };
+
+      const inferTypeFromMeta = (meta) => {
+        if (!meta || typeof meta !== "object") return "";
+        const rawType = [
+          meta.mime_type,
+          meta.mimetype,
+          meta.content_type,
+          meta.file_type,
+          meta.fileType,
+          meta.type,
+          meta.category
+        ]
+          .map((value) => (typeof value === "string" ? value.toLowerCase() : ""))
+          .find((value) => value);
+
+        if (!rawType) return "";
+        if (rawType.startsWith("image")) return "image";
+        if (rawType.startsWith("video")) return "video";
+        if (rawType.startsWith("audio")) return "audio";
+        if (rawType.includes("pdf")) return "pdf";
+        if (rawType.includes("spreadsheet") || rawType.includes("excel") || rawType.includes("sheet")) return "sheet";
+        if (rawType.includes("presentation") || rawType.includes("powerpoint") || rawType.includes("ppt")) return "ppt";
+        if (rawType.includes("zip") || rawType.includes("archive") || rawType.includes("compressed")) return "zip";
+        if (rawType.includes("doc")) return "doc";
+        return "";
+      };
+
+      const removeLoadingState = (el) => {
+        if (!el || !el.closest) return;
+        const card = el.closest(".media-card");
+        if (!card) return;
+        card.classList.remove("loading");
+        const spinner = card.querySelector(".media-card__spinner");
+        if (spinner) spinner.remove();
+      };
+
+      const handleMediaLoad = (el) => {
+        removeLoadingState(el);
+      };
+
+      const handleMediaError = (el) => {
+        removeLoadingState(el);
+        const card = el.closest && el.closest(".media-card");
+        if (card) card.classList.add("media-card--error");
+      };
+
+      window.handleMediaLoad = handleMediaLoad;
+      window.handleMediaError = handleMediaError;
+
+      const formatDisplayName = (value = "") => {
+        if (!value) return "";
+        const trimmed = value.trim();
+        if (!trimmed) return "";
+        if (trimmed.toLowerCase() === "download") {
+          return "";
+        }
+        return trimmed;
+      };
+
+      const deriveDisplayName = (url, meta) => {
+        const metaName = pickMetaString(meta, [
+          "file_name",
+          "fileName",
+          "filename",
+          "name",
+          "display_name",
+          "displayName",
+          "display_value",
+          "displayValue"
+        ]);
+        const fromUrl = deriveFileNameFromUrl(url);
+        return formatDisplayName(metaName || fromUrl);
+      };
+
+      function normalizeToFullUrl(value) {
+        if (!value || typeof value !== "string") return "";
+        if (value.startsWith("/api/")) return CREATOR_BASE + value;
+        return value;
+      }
+
+      function shouldRenderAsImage(value) {
+        if (!value || typeof value !== "string") return false;
+        const clean = stripQuery(value).toLowerCase();
+        const hasImageExtension = IMAGE_EXTENSIONS.some((ext) => clean.endsWith(ext));
+
+        if (hasImageExtension) {
+          return true;
+        }
+
+        if (clean.includes("/download")) {
+          const ext = getFileExtension(clean);
+          return !ext || IMAGE_EXTENSIONS.includes(ext);
+        }
+
+        return false;
+      }
+
+      const detectAssetType = (value, meta = null) => {
+        if (!value || typeof value !== "string") return "";
+        const ext = findExtensionFromCandidates(value, meta);
+        const metaCategory = inferTypeFromMeta(meta);
+
+        if (IMAGE_EXTENSIONS.includes(ext)) {
+          return "image";
+        }
+
+        if (!ext && shouldRenderAsImage(value)) {
+          return "image";
+        }
+
+        if (VIDEO_EXTENSIONS.includes(ext)) {
+          return "video";
+        }
+
+        for (const [type, extensions] of Object.entries(FILE_EXTENSION_GROUPS)) {
+          if (extensions.includes(ext)) {
+            return type;
+          }
+        }
+
+        if (metaCategory) {
+          return metaCategory;
+        }
+
+        if (shouldRenderAsImage(value)) {
+          return "image";
+        }
+
+        if (ext) {
+          return "file";
+        }
+
+        return "";
+      };
+
+      const buildAssetDescriptor = (value) => {
+        const candidate = coerceValueToString(value);
+        if (!candidate) return null;
+
+        if (!isLikelyUrl(candidate)) return null;
+        const normalized = normalizeToFullUrl(candidate) || candidate;
+        const rawMeta = (typeof value === "object" && value !== null) ? value : null;
+        const assetType = detectAssetType(normalized, rawMeta);
+        if (!assetType) return null;
+
+        const meta = TYPE_META[assetType] || TYPE_META.file;
+        const displayName = deriveDisplayName(candidate, rawMeta) || meta.label;
+
+        return {
+          url: normalized,
+          type: assetType,
+          chipLabel: meta.chip,
+          displayName
+        };
+      };
+
+      const getTypeIconMarkup = (type) => ICONS[type] || ICONS.file;
+
+      const renderAssetCard = (asset) => {
+        if (!asset) return "";
+
+        const safeUrl = escapeHtml(asset.url);
+        const altName = escapeHtml(asset.displayName || asset.chipLabel || "Asset");
+        const displayName = asset.displayName ? escapeHtml(asset.displayName) : "";
+        const chip = escapeHtml(asset.chipLabel || "");
+        const fileNameMarkup = displayName ? `<div class="file-name">${displayName}</div>` : "";
+        const downloadButton = `
+          <a href="${safeUrl}" class="media-card__action" target="_blank" rel="noopener noreferrer" title="Download ${altName}" aria-label="Download ${altName}">
+            ${ICONS.download}
+          </a>`;
+        const spinner = `<div class="media-card__spinner" aria-label="Loading asset"></div>`;
+
+        if (asset.type === "image") {
+          return `
+            <div class="media-card media-card--image loading">
+              ${downloadButton}
+              ${spinner}
+              <img src="${safeUrl}" alt="${altName}" loading="lazy" onload="handleMediaLoad(this)" onerror="handleMediaError(this)" />
+            </div>
+          `;
+        }
+
+        if (asset.type === "video") {
+          return `
+            <div class="media-card media-card--video loading">
+              ${downloadButton}
+              ${spinner}
+              <video src="${safeUrl}" controls preload="metadata" playsinline title="${altName}" onloadeddata="handleMediaLoad(this)" onerror="handleMediaError(this)"></video>
+              <span class="media-chip">${chip}</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="media-card media-card--file">
+            ${downloadButton}
+            <div class="asset-icon" aria-hidden="true">${getTypeIconMarkup(asset.type)}</div>
+            <div class="asset-type">${chip}</div>
+            ${fileNameMarkup}
+          </div>
+        `;
+      };
+
+
+const log = (...args) => console.log("[Widget]", ...args);
+
+const escapeHtml = (v = "") =>
+  String(v)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+// const coerceValueToString = (v) => {
+//   if (v === null || v === undefined) return "";
+//   if (typeof v === "object") return JSON.stringify(v);
+//   return String(v);
+// };
+
+const toggleAccordion = (el) => {
+  const content = el.nextElementSibling;
+  content.classList.toggle("open");
+};
+
+/* ----------------- Render Widget ----------------- */
+
+function formatZohoFieldValue(value) {
+  if (value === null || value === undefined) return "—";
+
+  // 1️⃣ If Zoho already gives display_value, use it
+  if (typeof value === "object" && value.display_value) {
+    return value.display_value;
+  }
+
+  // 2️⃣ Handle Full Name object
+  if (
+    typeof value === "object" &&
+    (value.first_name || value.last_name || value.prefix)
+  ) {
+    return [
+      value.prefix,
+      value.first_name,
+      value.last_name,
+      value.suffix
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  // 3️⃣ Handle Address object
+  if (
+    typeof value === "object" &&
+    (value.address_line_1 || value.city || value.state_province)
+  ) {
+    return [
+      value.address_line_1,
+      value.address_line_2,
+      value.city,
+      value.state_province,
+      value.postal_code,
+      value.country
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  // 4️⃣ Array values
+  if (Array.isArray(value)) {
+    return value.map(formatZohoFieldValue).join(", ");
+  }
+
+  // 5️⃣ Fallback for other objects
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "—";
+    }
+  }
+
+  // 6️⃣ Primitive values
+  return String(value);
+}
+
+function buildFieldValueHtml(val) {
+  const valuesArray = Array.isArray(val) ? val : [val];
+
+  // Detect assets
+  const assets = valuesArray
+    .map(buildAssetDescriptor)
+    .filter(Boolean);
+
+  if (assets.length > 0) {
+    return `
+      <div class="media-grid">
+        ${assets.map(renderAssetCard).join("")}
+      </div>
+    `;
+  }
+
+  // Normal text fallback
+  const textValue = valuesArray
+    .map(v => escapeHtml(coerceValueToString(v)))
+    .filter(Boolean)
+    .join(", ");
+
+  return textValue || "—";
+}
+
+
+
+function renderWidget(data = []) {
+  const container = document.getElementById("responsesSection");
+
+  if (!data.length) {
+    container.innerHTML = "No responses found.";
+    container.classList.add("placeholder");
+    return;
+  }
+
+  container.classList.remove("placeholder");
+
+  let html = "";
+
+  data.forEach(record => {
+    const isCustomForm =
+      record.is_master === false || record.is_master === "false";
+
+    let fieldsHtml = "";
+
+    const responseTime = formatDateTime(
+      record.Modified_Time ||
+      record?.list?.[0]?.Modified_Time
+    );
+
+
+    if (isCustomForm && Array.isArray(record.list)) {
+      record.list.forEach(item => {
+        const q = item.Questiom || item.Question || "Question";
+        const a = item.Answer || "—";
+
+        fieldsHtml += `
+            <div class="qa-row">
+                <div class="qa-question">
+                ${escapeHtml(q)}
+                </div>
+                <div class="qa-answer">
+                ${escapeHtml(a)}
+                </div>
+            </div>
+            `;
+      });
+
+      
+    } else {
+      Object.keys(record).forEach(key => {
+        if (key === "is_master") return;
+        const val = record[key];
+        if (!val) return;
+
+        const fieldValueHtml = buildFieldValueHtml(val);
+
+
+        fieldsHtml += `
+                <div class="qa-row">
+                <div class="qa-question">
+                    ${escapeHtml(key.replace(/_/g, " "))}
+                </div>
+                <div class="qa-answer">
+                    ${fieldValueHtml}
+                </div>
+                </div>
+                `;
+
+        });
+        
+    }
+    
+    html += `
+      <div class="response-card" style="${isCustomForm ? 'border-left:4px solid #f59e0b;' : ''}">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <div>
+            <span class="header-title">
+              Response ID : ${record.ID || record?.list?.[0]?.form_id || "N/A"}
+              ${isCustomForm
+                ? `<span class="file-chip" style="background:#fef3c7; color:#d97706; margin-left:8px; font-size:0.7rem;">
+                    Custom Form
+                  </span>`
+                : ""}
+            </span>
+
+            <span class="header-meta">
+              | Updated At : ${responseTime}
+            </span>
+          </div>
+          <div class="arrow">▼</div>
+        </div>
+
+        <div class="accordion-content">
+          <div class="qa-list">
+            ${fieldsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+
+  });
+
+  container.innerHTML = html;
+}
+
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleString(); // e.g. 9/14/2025, 3:42 PM
+}
+
+
+/* ----------------- Load Data ----------------- */
+
+async function loadLeadResponses(leadId) {
+  if (!leadId) return;
+  console.log("i come in lead responses");
+  
+
+  const container = document.getElementById("responsesSection");
+  container.innerHTML = "Loading responses…";
+
+  try {
+    const resp = await ZOHO.CRM.FUNCTIONS.execute(
+      "getLeadFormResponses",
+      { arguments: JSON.stringify({ leadId }) }
+    );
+
+    const output =
+      resp?.details?.output
+        ? JSON.parse(resp.details.output)
+        : {};
+
+        console.log("resp",resp);
+        
+    renderWidget(output.responses || []);
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = "Failed to load responses.";
+  }
+}
+
+/* ----------------- Init ----------------- */
+
+ZOHO.embeddedApp.on("PageLoad", data => {
+    console.log("PageLoad data", data);
+
+const leadId =
+  data?.EntityId||
+  data?.recordId ||
+  data?.entityId ||
+  null;
+
+console.log("Resolved Lead ID:", leadId);
+    
+  loadLeadResponses(leadId);
+});
+
+ZOHO.embeddedApp.init();
+</script>
+</body>
+</html>
