@@ -1,0 +1,81 @@
+string standalone.handleBillingAddress(Map billingAddress,String accountId)
+{
+if(billingAddress == null)
+{
+	return "";
+}
+existingId = billingAddress.get("existingId");
+// If using existing billing address
+if(existingId != null && existingId != "")
+{
+	info "Using existing Billing Address: " + existingId;
+	return existingId.toString();
+}
+// Get Account Name for naming
+accountName = "";
+if(accountId != null && accountId != "")
+{
+	accountResp = zoho.crm.getRecordById("Accounts",accountId.toLong());
+	if(accountResp != null && accountResp.get("Account_Name") != null)
+	{
+		accountName = accountResp.get("Account_Name");
+	}
+}
+// Get address fields
+street = ifnull(billingAddress.get("street"),"");
+city = ifnull(billingAddress.get("city"),"");
+province = ifnull(billingAddress.get("province"),"");
+postal = ifnull(billingAddress.get("postal"),"");
+country = ifnull(billingAddress.get("country"),"");
+// CREATE USER-FRIENDLY NAME: "123 Main St, Toronto - Luc Lamarche"
+billingName = "";
+if(street != "")
+{
+	billingName = street;
+}
+if(city != "")
+{
+	if(billingName != "")
+	{
+		billingName = billingName + ", " + city;
+	}
+	else
+	{
+		billingName = city;
+	}
+}
+if(accountName != "")
+{
+	if(billingName != "")
+	{
+		billingName = billingName + " - " + accountName;
+	}
+	else
+	{
+		billingName = accountName + " Billing";
+	}
+}
+if(billingName == "")
+{
+	billingName = "Billing Address";
+}
+billingMap = Map();
+billingMap.put("Name",billingName);
+// User-friendly name!
+billingMap.put("Billing_Street",street);
+billingMap.put("Billing_City",city);
+billingMap.put("Billing_Province",province);
+billingMap.put("Billing_Postal_Code",postal);
+billingMap.put("Billing_Country",country);
+if(accountId != null && accountId != "")
+{
+	billingMap.put("Account",accountId);
+}
+createResp = zoho.crm.createRecord("Billing_Address",billingMap);
+info "Create Billing Address Response: " + createResp;
+if(createResp != null && createResp.get("id") != null)
+{
+	return createResp.get("id").toString();
+}
+return "";
+}

@@ -1,0 +1,234 @@
+string standalone.EmailSendFunction(String leadId,String emailTemplateId,Map formDetails,String generateLink)
+{
+// Purpose: send an email to the lead or just return a form link.
+// How it works:
+// - If no email template is selected but form details are provided, build the Creator form and return its link.
+// - If a template is selected, personalize it for the lead, add the form link, and send the email.
+// - If only a link is requested, return the link without sending.
+if(emailTemplateId == "" && formDetails != null)
+{
+	// If no email template selected but formDetails exists → create dynamic Creator form
+	info formDetails;
+	lead_id = leadId;
+	// Store lead id
+	ownerName = "lbelectric572";
+	// Creator account owner
+	appLinkName = "master-form";
+	// Creator app name
+	reportName = "";
+	// Not used
+	formTitle = formDetails.get("title");
+	// Fetch form title
+	formLinkName = "FormTemplate";
+	// Creator form/table name for main form record
+	connectorName = "zohocreatordynamicform";
+	// Creator connection
+	formQuesName = "FormQuestions";
+	// Creator table for storing questions
+	pageFormUrl = "https://creatorapp.zohopublic.ca/lbelectric572/master-form/form-perma/FinalForm/qd9DXjEbd85RzY0DDSx2THzVXDBDgQFNXkTxgy1J0ue22jQmuCJwkZx6RTmyUVvYZxe0ueUqYPUVKu6aRrzNrrGMKsdaDM8JfOHD";
+	// Final form page URL
+	headerMap = Map();
+	// Map for Creator form header
+	headerMap.put("Title",formTitle);
+	// Set form title
+	optionalMap = Map();
+	// Optional parameters
+	try 
+	{
+		createMetaTable = zoho.creator.createRecord(ownerName,appLinkName,formLinkName,headerMap,optionalMap,"zohocreatordynamicform");
+		// Create main form record
+		info createMetaTable;
+		metaId = createMetaTable.get("data").get("ID");
+		// Creator form instance ID
+		questionList = formDetails.get("questions");
+		// Get incoming question list
+		for each  q in questionList
+		{
+			// Loop through each question
+			q1 = Map();
+			// Map for each question entry
+			q1.put("Questions",q.get("question"));
+			// Store question text
+			info q.get("question");
+			q1.put(formLinkName,metaId);
+			// Link to main form ID
+			resp = zoho.creator.createRecord(ownerName,appLinkName,formQuesName,q1,optionalMap,"zohocreatordynamicform");
+			// Insert into Creator
+			info resp;
+			if(resp.get("error") != null)
+			{
+				// Error handling
+				info resp.get("error").toString();
+			}
+		}
+		finalForm = pageFormUrl + "?lead_id=" + lead_id + "&form_id=" + metaId;
+		// Build form link
+		return {"message":"Email Send Succesfully","formLink":finalForm};
+		// Return link
+	}
+	catch (e)
+	{
+		info "Error occured while creating meta table" + e;
+		// Creator error log
+	}
+}
+else if(emailTemplateId == null || emailTemplateId.trim().isEmpty())
+{
+	// Template is empty
+	info "No template selected in popup.";
+	return "Please select a email template before sending the form.";
+}
+// Fetch Lead Details
+leadMap = zoho.crm.getRecordById("Leads",leadId.toLong());
+// Get lead record
+leadEmail = leadMap.get("Email");
+// Lead email
+leadName = "";
+// Placeholder
+if(leadMap.get("Full_Name") != null)
+{
+	// Prefer full name
+	leadName = leadMap.get("Full_Name");
+}
+else if(leadMap.get("First_Name") != null)
+{
+	// Fallback to first name
+	leadName = leadMap.get("First_Name");
+}
+info leadMap;
+// Fetch Email Template Content
+templateurl = "https://crmsandbox.zohocloud.ca/crm/v8/settings/email_templates/" + emailTemplateId;
+// API URL
+emailTemplates = invokeurl
+[
+	url :templateurl
+	type :GET
+	connection:"zohoemailtemplates"
+];
+info emailTemplates;
+emailTemp = emailTemplates.get("email_templates");
+// Extract templates list
+emailContent = emailTemp.get(0).get("mail_content");
+// Template HTML content
+emailName = emailTemp.get(0).get("name");
+// Template name
+emailSubject = emailTemp.get(0).get("subject");
+// Template subject
+newEmailContent = emailContent.replaceAll("Client",leadName);
+// Replace placeholder with real name
+// Extract the form link inside template body
+startMarker = "https://creatorapp.zohopublic.ca";
+// Where link begins
+endMarker = "?";
+// Stop before first ?
+formLink = "";
+// Placeholder
+startPos = newEmailContent.indexOf(startMarker);
+// Locate start of link
+if(startPos >= 0)
+{
+	// Valid link found
+	contentStart = startPos + startMarker.length();
+	// Skip marker text
+	remainingString = newEmailContent.subString(contentStart);
+	// Extract rest
+	endPosRelative = remainingString.indexOf(endMarker);
+	// Find next ?
+	if(endPosRelative >= 0)
+	{
+		extractedValue = remainingString.subString(0,endPosRelative);
+		// Extract partial URL
+		info "Found: " + extractedValue;
+		formLink = startMarker + extractedValue + "?" + "lead_id=" + leadId + "&form_id=" + zoho.currenttime.toLong();
+		// Build custom link
+	}
+	else
+	{
+		info "End marker not found.";
+	}
+}
+else
+{
+	info "Start marker not found.";
+}
+if(generateLink == "generate")
+{
+	// Only return form link
+	return {"message":"Link Generate Succesfully","formLink":formLink};
+}
+// Replace lead_id placeholder
+leadStr = "lead_id=" + leadId;
+newEmailContent = newEmailContent.replaceAll("lead_id",leadStr);
+info newEmailContent;
+info zoho.loginuserid;
+info zoho.loginuser;
+info leadEmail;
+// Prepare send mail API request
+emailUrl = "https://crmsandbox.zohocloud.ca/crm/v8/Leads/" + leadId + "/actions/send_mail";
+// CRM send email API
+payload = Map();
+// Mail container
+dataList = List();
+record = Map();
+record.put("subject","Please complete your form");
+// Email subject
+record.put("mail_format","html");
+// HTML format
+record.put("content",newEmailContent);
+// Updated email body
+fromMap = Map();
+fromMap.put("user_name","Sales Ops");
+// Sender name
+fromMap.put("email",zoho.loginuserid);
+// Sender email (login user)
+record.put("from",fromMap);
+toList = List();
+toEntry = Map();
+toEntry.put("user_name",leadName);
+// Recipient name
+toEntry.put("email",leadEmail);
+// Recipient email
+toList.add(toEntry);
+record.put("to",toList);
+ccList = List();
+// CC list (empty)
+record.put("cc",ccList);
+record.put("org_email",false);
+// Not organization email
+dataList.add(record);
+payload.put("data",dataList);
+response = invokeurl
+[
+	url :emailUrl
+	type :POST
+	parameters:payload.toString()
+	headers:{"Content-Type":"application/json"}
+	connection:"zohosendemail"
+];
+info response;
+dataList = List();
+if(response.containsKey("data"))
+{
+	// Extract response data
+	dataList = response.get("data");
+}
+isSuccess = dataList.size() > 0 && dataList.get(0).get("code") == "SUCCESS";
+// Mail success check
+if(isSuccess)
+{
+	updateMap = Map();
+	updateMap.put("Email_Status","Success");
+	// Update lead email status
+	updateResp = zoho.crm.updateRecord("Leads",leadId.toLong(),updateMap);
+	return {"message":"Email Send Succesfully","formLink":formLink};
+	// Return link + message
+}
+else
+{
+	updateMap = Map();
+	updateMap.put("Email_Status","Failed");
+	// Update failure status
+	updateResp = zoho.crm.updateRecord("Leads",leadId.toLong(),updateMap);
+	return {"message":"Email Not Send  Succesfully","formLink":formLink};
+}
+}

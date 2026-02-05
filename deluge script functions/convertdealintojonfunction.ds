@@ -1,0 +1,52 @@
+void automation.convertDealIntoJonFunction(Int dealId)
+{
+// INPUT: dealId (Long)
+// 1. Get Deal record
+deal = zoho.crm.getRecordById("Deals",dealId);
+info deal;
+// 2. Safety check: avoid duplicate Job creation
+if(deal.get("Job_Created") == true)
+{
+	info "Job already created for this Deal";
+	return;
+}
+// 3. Prepare Job Service data
+jobMap = Map();
+// Job Service Name
+jobMap.put("Name",deal.get("Deal_Name"));
+// Owner
+jobMap.put("Owner",deal.get("Owner").get("id"));
+// Description
+jobMap.put("Description",deal.get("Description"));
+// Base Rate (Amount)
+jobMap.put("Base_Rate",deal.get("Amount"));
+// Service Type
+jobMap.put("Service_Type",deal.get("Service_Type"));
+// Service Category
+jobMap.put("Service_Category",deal.get("Service_Category"));
+// Service Name
+jobMap.put("Service_Name",deal.get("Service_Name"));
+// Link back to Deal (Lookup)
+jobMap.put("Deal_Name",dealId);
+// OPTIONAL: Link Account & Contact if you have them
+if(deal.get("Account_Name") != null)
+{
+	jobMap.put("Account_Name",deal.get("Account_Name").get("id"));
+}
+if(deal.get("Contact_Name") != null)
+{
+	jobMap.put("Contact_Name",deal.get("Contact_Name").get("id"));
+}
+info jobMap;
+// 4. Create Job Service record
+jobResponse = zoho.crm.createRecord("Job_Services",jobMap);
+// 5. Update Deal → mark Job created
+if(jobResponse.get("id") != null)
+{
+	updateMap = Map();
+	updateMap.put("Job_Created",true);
+	updateMap.put("Job_Service_ID",jobResponse.get("id"));
+	zoho.crm.updateRecord("Deals",dealId,updateMap);
+}
+info jobResponse;
+}

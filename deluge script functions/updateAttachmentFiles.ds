@@ -1,0 +1,83 @@
+void automation.updateAttachmentFile(String leadId)
+{
+// Purpose: copy files uploaded in the Lead's Site_Assessment_Files field
+// into the Lead's CRM attachments, skipping any filenames already attached.
+// How it works:
+// - Read files from the upload field on the Lead.
+// - Skip if there are none, or if a filename is already attached.
+// - Download each missing file via the Files API and attach it to the Lead if that file is not found in attachement section.
+// - Log the before/after attachment lists for visibility.
+// Arguments: leadId (String) → Must be mapped to Lead.Id in workflow
+moduleName = "Leads";
+// CRM module name
+fieldName = "Site_Assessment_Files";
+// API name of file upload field
+leadDetails = zoho.crm.getRecordById(moduleName,leadId.toLong());
+// Fetch lead record
+filesList = leadDetails.get(fieldName);
+// Get uploaded file list from field
+// Proceed only if files exist
+if(filesList != null && filesList.size() > 0)
+{
+	val = zoho.crm.getRecordById("Leads",leadId);
+	// Fetch lead again for file URLs
+	downloadUrl = val.get("Site_Assessment_Files");
+	// List of file objects uploaded to the field
+	attach = zoho.crm.getRelatedRecords("Attachments","Leads",leadId);
+	// Existing attachments on the lead
+	info attach;
+	attachmentFile = Map();
+	// Map to store existing attachments (filename → id)
+	for each  fl in attach
+	{
+		fileName = fl.get("File_Name");
+		// Attached file name
+		if(fileName != null)
+		{
+			attachmentFile.put(fileName,fl.get("id"));
+			// Store file ID to avoid duplicates
+		}
+	}
+	info attachmentFile;
+	for each  url in downloadUrl
+	{
+		// Loop uploaded field files
+		info url;
+		fileName = url.get("file_Name");
+		// File name from upload field
+		if(fileName != null && attachmentFile.containsKey(fileName))
+		{
+			// Skip if already attached
+			continue;
+		}
+		fileId = url.get("file_Id");
+		// File ID to download
+		fullUrl = "https://crmsandbox.zohocloud.ca/crm/v3/files?id=" + fileId;
+		// Build download URL
+		// Connection used to fetch the file
+		fileContent = invokeurl
+		[
+			url :fullUrl
+			type :GET
+			connection:"crmattachementupdate"
+		];
+		info fileContent;
+		recordsList = list();
+		// Build list for upload API
+		recordsList.add(fileContent);
+		resp = zoho.crm.attachFile("Leads",leadId,fileContent);
+		// Attach file to CRM record
+		info resp;
+	}
+	attach = zoho.crm.getRelatedRecords("Attachments","Leads",leadId);
+	// Fetch updated attachments
+	info attach;
+}
+else
+{
+	info "No files found. Skipping.";
+	// No files → do nothing
+}
+}
+
+

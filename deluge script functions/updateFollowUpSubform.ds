@@ -1,0 +1,40 @@
+void automation.updateFollowUpSubform(Int leadId)
+{
+// 1️⃣ Fetch Lead record
+leadRec = zoho.crm.getRecordById("Leads",leadId);
+info leadRec;
+// 	subofrm
+subformList = List();
+if(leadRec.get("Follow_Up_Reminders") != null)
+{
+	subformList = leadRec.get("Follow_Up_Reminders");
+}
+// 2️⃣ Prepare subform row
+// follow up one	
+historyRow = Map();
+historyRow.put("Lead_Status",leadRec.get("Lead_Status"));
+historyRow.put("Follow_Up","1");
+historyRow.put("Follow_Up_Scheduled",leadRec.get("Follow_Up_1"));
+historyRow.put("Recipient",leadRec.get("Follow_up_1_sent_to"));
+historyRow.put("Reminder","Pending");
+historyRow2 = Map();
+historyRow2.put("Lead_Status",leadRec.get("Lead_Status"));
+historyRow2.put("Follow_Up","2");
+historyRow2.put("Follow_Up_Scheduled",leadRec.get("Follow_Up_2"));
+historyRow2.put("Recipient",leadRec.get("Follow_up_2_sent_to"));
+historyRow2.put("Reminder","Pending");
+historyRow3 = Map();
+historyRow3.put("Lead_Status",leadRec.get("Lead_Status"));
+historyRow3.put("Follow_Up","3");
+historyRow3.put("Follow_Up_Scheduled",leadRec.get("Follow_Up_3"));
+historyRow3.put("Recipient",leadRec.get("Follow_up_3_sent_to"));
+historyRow3.put("Reminder","Pending");
+subformList.add(historyRow);
+subformList.add(historyRow2);
+subformList.add(historyRow3);
+updateMap = Map();
+updateMap.put("Follow_Up_Reminders",subformList);
+updateResp = zoho.crm.updateRecord("Leads",leadId,updateMap);
+// 	// 6️⃣ (Optional) log response
+info updateResp;
+}

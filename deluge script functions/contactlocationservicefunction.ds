@@ -1,0 +1,70 @@
+string standalone.contactLocationServiceFunction(String contactId,String serviceLocationId,String contactType,String accountId)
+{
+if(contactId == null || contactId == "" || serviceLocationId == null || serviceLocationId == "")
+{
+	info "Contact or Service Location ID is null/empty";
+	return '{"code":"error", "message":"Contact or Service Location ID missing for junction"}';
+}
+// Fetch Contact Name for better naming
+contactName = "Contact";
+contactResp = zoho.crm.getRecordById("Contacts",contactId.toLong());
+if(contactResp != null && contactResp.get("Full_Name") != null)
+{
+	contactName = contactResp.get("Full_Name");
+}
+// Fetch Service Location Name
+slName = "Service Location";
+slResp = zoho.crm.getRecordById("Service_Locations",serviceLocationId.toLong());
+if(slResp != null && slResp.get("Name") != null)
+{
+	slName = slResp.get("Name");
+}
+// Check if junction already exists
+searchCriteria = "Contact:equals:" + contactId + " and Service_Location:equals:" + serviceLocationId;
+existingJunction = zoho.crm.searchRecords("Contact_Service_Location",searchCriteria);
+if(existingJunction != null && existingJunction.size() > 0)
+{
+	firstRecord = existingJunction.get(0);
+	if(firstRecord != null)
+	{
+		junctionId = firstRecord.get("id");
+		if(junctionId != null)
+		{
+			info "Junction already exists: " + junctionId;
+			// Update with Account if missing
+			updateMap = Map();
+			if(accountId != null && accountId != "")
+			{
+				updateMap.put("Account",accountId);
+			}
+			if(contactType != null && contactType != "")
+			{
+				updateMap.put("Contact_Type",contactType);
+			}
+			if(!updateMap.isEmpty())
+			{
+				zoho.crm.updateRecord("Contact_Service_Location",junctionId.toLong(),updateMap);
+			}
+			return junctionId.toString();
+		}
+	}
+}
+// Create new junction record
+junctionMap = Map();
+junctionMap.put("Name",contactName + " - " + slName);
+junctionMap.put("Contact",contactId);
+junctionMap.put("Service_Location",serviceLocationId);
+junctionMap.put("Contact_Type",contactType);
+// ADD ACCOUNT LINK!
+if(accountId != null && accountId != "")
+{
+	junctionMap.put("Account",accountId);
+}
+createResp = zoho.crm.createRecord("Contact_Service_Location",junctionMap);
+info "Create Contact_Service_Location Response: " + createResp;
+if(createResp != null && createResp.get("id") != null)
+{
+	return createResp.get("id").toString();
+}
+return '{"code":"error", "message":"Failed to create Contact_Service_Location junction"}';
+}

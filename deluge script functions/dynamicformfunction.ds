@@ -1,0 +1,85 @@
+string standalone.dynamicFormFunction(Map formDetails,String lead_id)
+{
+// Purpose: create a custom dynamic form in Zoho Creator for a lead.
+// How it works:
+// - Fetch form details from the input map.
+// - Create a new form header in Creator.
+// - Add each question from the input map to the form.
+// - Return the public form link for the created form.
+ownerName = "lbelectric572";
+// Creator account owner
+appLinkName = "master-form";
+// Creator app name
+reportName = "";
+// Not used here
+formTitle = formDetails.get("title");
+// Title typed by the user
+formLinkName = "FormTemplate";
+// Creator form to store the header row
+connectorName = "zohocreatordynamicform";
+// Connection used for Creator calls
+formQuesName = "FormQuestions";
+// Creator form that stores each question
+pageFormUrl = "https://creatorapp.zohopublic.ca/lbelectric572/master-form/form-perma/FinalForm/qd9DXjEbd85RzY0DDSx2THzVXDBDgQFNXkTxgy1J0ue22jQmuCJwkZx6RTmyUVvYZxe0ueUqYPUVKu6aRrzNrrGMKsdaDM8JfOHD";
+// Public form link base
+headerMap = Map();
+// Data for the form header
+headerMap.put("Title",formTitle);
+// Store the form title
+optionalMap = Map();
+// Extra options (left empty)
+// 	baseUrl = "https://creatorapp.zohocloud.ca/api/v2/" + ownerName + "/" + appLinkName + "/report/" + reportName;
+// 	response = zoho.creator.createRecord(ownerName, appLinkName,formLinkName, headerMap,optionalMap,"newzohocreatorapp");
+try 
+{
+	createMetaTable = zoho.creator.createRecord(ownerName,appLinkName,formLinkName,headerMap,optionalMap,"zohocreatordynamicform");
+	// Save the header row
+	// 	info createMetaTable;
+	metaId = createMetaTable.get("data").get("ID");
+	// Header ID to link questions
+	questionList = formDetails.get("questions");
+	// Questions from the popup
+	// 		q1 = Map();
+	// 		q1.put("Questions", "What is your Passport Number?");
+	// 		q1.put(formLinkName,metaId ); // Example ID
+	// 		questionList.add(q1);
+	// 		// --- Dummy Question 2: Number ---
+	// 		q2 = Map();
+	// 		q2.put("Questions", "How many years of experience?");
+	// 		q2.put(formLinkName, metaId);
+	// 		questionList.add(q2);
+	// 		// --- Dummy Question 3: Date ---
+	// 		q3 = Map();
+	// 		q3.put("Questions", "When can you start?");
+	// 		q3.put(formLinkName, metaId);
+	// 		questionList.add(q3);
+	for each  q in questionList
+	{
+		// Add each question under this header
+		q1 = Map();
+		// One question record
+		q1.put("Questions",q.get("question"));
+		// The question text
+		// 		info q.get("question");
+		q1.put(formLinkName,metaId);
+		// Link question to the header
+		resp = zoho.creator.createRecord(ownerName,appLinkName,formQuesName,q1,optionalMap,"zohocreatordynamicform");
+		// Save the question
+		// 		info resp;
+		if(resp.get("error") != null)
+		{
+			// Log any Creator error
+			// 				throws(resp.get("error").toString());
+			info resp.get("error").toString();
+		}
+	}
+	return pageFormUrl + "?lead_id=" + lead_id + "&form_id=" + metaId;
+	// Shareable form link for this lead
+}
+catch (e)
+{
+	info "Error occured while creating meta table" + e;
+	// Catch-all error log
+}
+return "Something went wrong";
+}

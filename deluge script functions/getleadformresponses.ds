@@ -1,0 +1,117 @@
+string standalone.getLeadFormResponses(String leadId)
+{
+// Purpose: fetch all Zoho Creator form responses tied to a lead ID.
+// How it works:
+// - If no lead ID is given, return an empty list.
+// - Call Creator to list all reports in the app.
+// - For the special FormResponses_Report, group rows by form_id and mark them as non-master.
+// - For other reports (excluding FinalForm_Report), pull rows, mark them as master, and return everything together.
+if(isNull(leadId))
+{
+	// If no leadId passed return empty list
+	return {"responses":List()};
+}
+ownerName = "lbelectric572";
+// Creator account owner
+appLinkName = "master-form";
+// Creator app name
+reportName = "Master_Form_Heat_Pump_Report";
+// Not used directly here
+baseUrl = "https://creator.zohocloud.ca/api/v2/" + ownerName + "/" + appLinkName + "/reports";
+// Fetch all reports list
+response = invokeurl
+[
+	url :baseUrl
+	type :GET
+	connection:"zohocreator"
+];
+responses = List();
+// Final list to return
+for each  rec in response.get("reports")
+{
+	// Loop through all Creator reports
+	formName = rec.get("link_name");
+	// Get report link name
+	if(formName == "FormResponses_Report" && formName != "FinalForm_Report")
+	{
+		// Special handling for FormResponses_Report
+		criteriaString = "(lead_id==\"" + leadId + "\")";
+		// Filter Creator records by lead_id
+		encodedCriteria = zoho.encryption.urlEncode(criteriaString);
+		// URL encode criteria
+		newBaseUrl = "https://creator.zohocloud.ca/api/v2/" + ownerName + "/" + appLinkName + "/report/" + formName + "?criteria=" + encodedCriteria;
+		// Build report API URL
+		eachResponse = invokeurl
+		[
+			url :newBaseUrl
+			type :GET
+			connection:"zohocreator"
+		];
+		formMap = Map();
+		// Temporary map to group records by form_id
+		formMap.put("is_Master",false);
+		// Mark as not master
+		for each  rep in eachResponse.get("data")
+		{
+			// Loop through matching rows
+			lst = formMap.get(rep.get("form_id"));
+			// Fetch existing group list
+			if(lst == null)
+			{
+				lst = List();
+				// Create new list if not exists
+			}
+			lst.insert(rep);
+			// Insert row into group
+			formMap.put(rep.get("form_id"),lst);
+			// Update map entry
+		}
+		formMapKey = formMap.keys();
+		// Get all grouped form IDs
+		for each  key in formMapKey
+		{
+			if(formMap.get(key) != false)
+			{
+				// Skip false values
+				newMap = Map();
+				// Prepare final grouped response block
+				newMap.put("is_master",false);
+				// Mark as not master template
+				newMap.put("list",formMap.get(key));
+				// Add grouped list
+				responses.add(newMap);
+				// Add to response list
+			}
+		}
+	}
+	else if(formName != "FinalForm_Report")
+	{
+		// All other reports except FinalForm_Report
+		criteriaString = "(lead_id==\"" + leadId + "\")";
+		// Filter criteria
+		encodedCriteria = zoho.encryption.urlEncode(criteriaString);
+		// Encode
+		newBaseUrl = "https://creator.zohocloud.ca/api/v2/" + ownerName + "/" + appLinkName + "/report/" + formName + "?criteria=" + encodedCriteria;
+		// API URL
+		eachResponse = invokeurl
+		[
+			url :newBaseUrl
+			type :GET
+			connection:"zohocreator"
+		];
+		if(eachResponse.get("data") != null)
+		{
+			// If report returns data
+			for each  rep in eachResponse.get("data")
+			{
+				rep.put("is_Master",true);
+				// Mark these as master responses
+				responses.add(rep);
+				// Push directly to response list
+			}
+		}
+	}
+}
+return {"status":"success","responses":responses};
+// Final output
+}

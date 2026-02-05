@@ -1,0 +1,31 @@
+void automation.updateSubfromField(Int leadId)
+{
+leadVal = zoho.crm.getRecordById("Leads",leadId);
+info leadVal;
+subFormList = leadVal.get("Follow_Up_Reminders");
+info subFormList;
+i = 0;
+len = subFormList.size();
+for each  item in subFormList
+{
+	if(len - i <= 3)
+	{
+		if(item.get("Follow_Up") == "1")
+		{
+			item.put("Follow_Up_Scheduled",leadVal.get("Follow_Up_1"));
+		}
+		else if(item.get("Follow_Up") == "2")
+		{
+			item.put("Follow_Up_Scheduled",leadVal.get("Follow_Up_2"));
+		}
+		else if(item.get("Follow_Up") == "3")
+		{
+			item.put("Follow_Up_Scheduled",leadVal.get("Follow_Up_3"));
+		}
+	}
+	i = i + 1;
+}
+finalSubForm = Map();
+finalSubForm.put("Follow_Up_Reminders",subFormList);
+info zoho.crm.updateRecord("Leads",leadId,finalSubForm);
+}

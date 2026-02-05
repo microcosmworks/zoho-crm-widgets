@@ -1,0 +1,146 @@
+void automation.createAccountFunction(Int leadId)
+{
+try 
+{
+	leadId = leadId.toLong();
+	// Convert Lead ID to long
+	leadInfo = zoho.crm.getRecordById("Leads",leadId);
+	// Fetch Lead details
+	// Extract Lead fields
+	leadEmail = ifnull(leadInfo.get("Email"),"");
+	// Lead email
+	leadPhone = ifnull(leadInfo.get("Phone"),"");
+	// Lead phone
+	leadMobile = ifnull(leadInfo.get("Mobile"),"");
+	// Mobile number
+	leadFirst = ifnull(leadInfo.get("First_Name"),"");
+	// First Name
+	leadLast = ifnull(leadInfo.get("Last_Name"),"");
+	// Last Name
+	leadCompany = ifnull(leadInfo.get("Company"),"");
+	// Company Name
+	leadSource = ifnull(leadInfo.get("Lead_Source"),"");
+	// Lead Source
+	leadOptOut = ifnull(leadInfo.get("Email_Opt_Out"),false);
+	// Email opt-out
+	preferredContact = ifnull(leadInfo.get("Preferred_Method_of_Contact"),"");
+	// Preferred method
+	// Lead address fields
+	street = ifnull(leadInfo.get("Street"),"");
+	// Address street
+	city = ifnull(leadInfo.get("City"),"");
+	// City 
+	state = ifnull(leadInfo.get("State"),"");
+	// State
+	zip = ifnull(leadInfo.get("Zip_Code"),"");
+	// ZIP code
+	country = ifnull(leadInfo.get("Country"),"");
+	// Country
+	if(leadLast == "")
+	{
+		// Zoho requires Last Name for Contacts
+		leadLast = "Unknown";
+		// Fallback if missing
+	}
+	// Build strict matching criteria (Email + Phone + First + Last)
+	criteria = "";
+	if(leadEmail != "" && leadPhone != "" && leadFirst != "" && leadLast != "")
+	{
+		criteria = "(Email:equals:" + leadEmail + ") and " + "(Phone:equals:" + leadPhone + ") and " + "(First_Name:equals:" + leadFirst + ") and " + "(Last_Name:equals:" + leadLast + ")";
+		// Build search query
+	}
+	existingContacts = list();
+	// Placeholder list
+	if(criteria != "")
+	{
+		// Only search if criteria is valid
+		existingContacts = zoho.crm.searchRecords("Contacts",criteria);
+		// Search matching Contacts
+	}
+	// If a matching Contact exists, link Lead → Contact
+	if(existingContacts != null && existingContacts.size() > 0)
+	{
+		contactId = existingContacts.get(0).get("id");
+		// Take first matched contact
+		updateLead = Map();
+		updateLead.put("Contact",contactId);
+		// Lead lookup to Contact
+		zoho.crm.updateRecord("Leads",leadId,updateLead);
+		// Save link
+	}
+	else
+	{
+		// Create new Contact using Lead data
+		newContact = Map();
+		// Basic info
+		newContact.put("First_Name",leadFirst);
+		// First Name
+		newContact.put("Last_Name",leadLast);
+		// Last Name
+		newContact.put("Email",leadEmail);
+		// Email
+		newContact.put("Secondary_Email",ifnull(leadInfo.get("Secondary_Email"),""));
+		// Secondary Email
+		// Phone details
+		newContact.put("Phone",leadPhone);
+		// Phone
+		newContact.put("Mobile",leadMobile);
+		// Mobile
+		newContact.put("Fax",ifnull(leadInfo.get("Fax"),""));
+		// Fax
+		newContact.put("Home_Phone",ifnull(leadInfo.get("Home_Phone"),""));
+		// Home phone
+		newContact.put("Other_Phone",ifnull(leadInfo.get("Other_Phone"),""));
+		// Other phone
+		// Company mapping (Contact.Account_Name)
+		newContact.put("Account_Name",leadCompany);
+		// Company name
+		// Additional info
+		newContact.put("Lead_Source",leadSource);
+		// Source
+		newContact.put("Email_Opt_Out",leadOptOut);
+		// Opt-out status
+		newContact.put("Preferred_Method_of_Contact",preferredContact);
+		// Preferred contact method
+		// Address mapping → Contact mailing address
+		newContact.put("Mailing_Street",street);
+		// Street
+		newContact.put("Mailing_City",city);
+		// City
+		newContact.put("Mailing_State",state);
+		// State
+		newContact.put("Mailing_Zip",zip);
+		// ZIP
+		newContact.put("Mailing_Country",country);
+		// Country
+		// Optional fields
+		newContact.put("Title",ifnull(leadInfo.get("Title"),""));
+		// Job title
+		newContact.put("Department",ifnull(leadInfo.get("Department"),""));
+		// Department
+		newContact.put("Description",ifnull(leadInfo.get("Description"),""));
+		// Description
+		createResp = zoho.crm.createRecord("Contacts",newContact);
+		// Create Contact
+		if(createResp.get("id") != null)
+		{
+			// If created successfully
+			updateLead = Map();
+			updateLead.put("Contact",createResp.get("id"));
+			// Link Lead → Contact
+			zoho.crm.updateRecord("Leads",leadId,updateLead);
+			// Save link
+		}
+		else
+		{
+			info createResp;
+			// Log issue if contact creation failed
+		}
+	}
+}
+catch (e)
+{
+	info "Contact create/link function error: " + e;
+	// Error logging
+}
+}

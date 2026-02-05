@@ -1,0 +1,209 @@
+void automation.formSendWhenLeadCreated(Int leadId)
+{
+// Purpose: automatically pick the right email template for a lead’s service type,
+// personalize it with the lead’s name and form link, and send the email when a lead is created.
+// How it works:
+// - Stop immediately if the lead has opted out of emails.
+// - Fetch lead details and pick the email template whose name matches the Service_Type (format: "ID - Service").
+// - Personalize the email body with the lead name and the form link that includes lead_id.
+// - Send the email via CRM and update the lead’s Email_Status to Success or Failed.
+lead = zoho.crm.getRecordById("Leads",leadId);
+// Fetch lead details
+info lead;
+isEmailOpt = lead.get("Email_Opt_Out");
+// Check if contact opted out
+serviceType = lead.get("Service_Type");
+// Determine service type
+// Proceed only if email allowed
+if(!isEmailOpt)
+{
+	leadMap = zoho.crm.getRecordById("Leads",leadId.toLong());
+	// Fetch lead again
+	leadEmail = leadMap.get("Email");
+	// Lead email address
+	leadName = "";
+	// Initialize name
+	// Prefer full name
+	if(leadMap.get("Full_Name") != null)
+	{
+		leadName = leadMap.get("Full_Name");
+	}
+	else if(leadMap.get("First_Name") != null)
+	{
+		leadName = leadMap.get("First_Name");
+	}
+	info leadMap;
+	templateurl = "https://crmsandbox.zohocloud.ca/crm/v8/settings/email_templates";
+	// Template API URL
+	// Connection for email templates
+	allEmailTempalte = invokeurl
+	[
+		url :templateurl
+		type :GET
+		connection:"zohoemailtemplates"
+	];
+	emailTemplateId = "";
+	// Placeholder for selected email template
+	// Iterate through all templates
+	for each  frm in allEmailTempalte.get("email_templates")
+	{
+		name = frm.get("name");
+		// Template name
+		separatorIndex = name.indexOf(" - ");
+		// Split format: "123 - Service Name"
+		// If valid format found
+		if(separatorIndex > 0)
+		{
+			idPart = name.subString(0,separatorIndex).trim();
+			// Extract ID portion
+			namePart = name.subString(separatorIndex + 3).trim();
+			// Extract name after dash
+			info "ID Part: " + idPart;
+			info "Name Part: " + namePart;
+			// Match service type
+			if(namePart == serviceType)
+			{
+				// Store matching template ID & stop searching
+				emailTemplateId = frm.get("id");
+				break;
+			}
+		}
+		else
+		{
+			info "Separator not found in string.";
+			// Handle unexpected name formats
+		}
+	}
+	templateurl = "https://crmsandbox.zohocloud.ca/crm/v8/settings/email_templates/" + emailTemplateId;
+	// Fetch selected template
+	emailTemplates = invokeurl
+	[
+		url :templateurl
+		type :GET
+		connection:"zohoemailtemplates"
+	];
+	info emailTemplates;
+	emailTemp = emailTemplates.get("email_templates");
+	// Extract email template data
+	emailContent = emailTemp.get(0).get("mail_content");
+	// Template HTML body
+	emailName = emailTemp.get(0).get("name");
+	// Template name
+	emailSubject = emailTemp.get(0).get("subject");
+	// Template subject
+	newEmailContent = emailContent.replaceAll("Client",leadName);
+	// Replace placeholder with lead name
+	startMarker = "https://creatorapp.zohopublic.ca";
+	// Start of Creator form link
+	endMarker = "?";
+	// Stop before query params
+	formLink = "";
+	// Placeholder link
+	startPos = newEmailContent.indexOf(startMarker);
+	// Locate form URL
+	if(startPos >= 0)
+	{
+		contentStart = startPos + startMarker.length();
+		// Move pointer after base URL
+		remainingString = newEmailContent.subString(contentStart);
+		// Extract rest
+		endPosRelative = remainingString.indexOf(endMarker);
+		// Locate '?'
+		if(endPosRelative >= 0)
+		{
+			extractedValue = remainingString.subString(0,endPosRelative);
+			// Extract path
+			info "Found: " + extractedValue;
+			formLink = startMarker + extractedValue + "?" + "lead_id=" + leadId;
+			// Build dynamic form link
+		}
+		else
+		{
+			info "End marker not found.";
+			// In case of missing '?'
+		}
+	}
+	else
+	{
+		info "Start marker not found.";
+		// If email template missing Creator link
+	}
+	leadStr = "lead_id=" + leadId;
+	// Insert lead ID into email content
+	newEmailContent = newEmailContent.replaceAll("lead_id",leadStr);
+	info newEmailContent;
+	info zoho.loginuserid;
+	// Debug info
+	info zoho.loginuser;
+	info leadEmail;
+	emailUrl = "https://crmsandbox.zohocloud.ca/crm/v8/Leads/" + leadId + "/actions/send_mail";
+	// CRM email API
+	payload = Map();
+	// Root payload
+	dataList = List();
+	// Contains message
+	record = Map();
+	// Email details
+	record.put("subject","Please complete your form");
+	// Email subject
+	record.put("mail_format","html");
+	// HTML email
+	record.put("content",newEmailContent);
+	// Email body
+	fromMap = Map();
+	// Sender details
+	fromMap.put("user_name","Sales Ops");
+	fromMap.put("email",zoho.loginuserid);
+	record.put("from",fromMap);
+	toList = List();
+	// Recipients list
+	toEntry = Map();
+	toEntry.put("user_name",leadName);
+	toEntry.put("email",leadEmail);
+	toList.add(toEntry);
+	record.put("to",toList);
+	ccList = List();
+	// CC empty
+	record.put("cc",ccList);
+	record.put("org_email",false);
+	// Not org-wide email
+	dataList.add(record);
+	// Add record into list
+	payload.put("data",dataList);
+	// Add list into payload
+	// Email sending connection
+	response = invokeurl
+	[
+		url :emailUrl
+		type :POST
+		parameters:payload.toString()
+		headers:{"Content-Type":"application/json"}
+		connection:"zohosendemail"
+	];
+	info response;
+	dataList = List();
+	if(response.containsKey("data"))
+	{
+		// Validate response
+		dataList = response.get("data");
+	}
+	isSuccess = dataList.size() > 0 && dataList.get(0).get("code") == "SUCCESS";
+	// Success check
+	if(isSuccess)
+	{
+		updateMap = Map();
+		updateMap.put("Email_Status","Success");
+		// Update lead with success flag
+		updateResp = zoho.crm.updateRecord("Leads",leadId.toLong(),updateMap);
+	}
+	else
+	{
+		updateMap = Map();
+		updateMap.put("Email_Status","Failed");
+		// Update failure status
+		updateResp = zoho.crm.updateRecord("Leads",leadId.toLong(),updateMap);
+	}
+}
+// No return is required for a void workflow function
+}
+

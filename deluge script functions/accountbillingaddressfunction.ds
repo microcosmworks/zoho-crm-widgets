@@ -1,0 +1,67 @@
+string standalone.accountBillingAddressFunction(String accountId,String billingAddressId,String billingAddressText)
+{
+if(accountId == null || accountId == "" || billingAddressId == null || billingAddressId == "")
+{
+	info "Account or Billing Address ID is null/empty";
+	return '{"code":"error", "message":"Account or Billing Address ID missing"}';
+}
+// Fetch Account Name
+accountName = "Account";
+accountResp = zoho.crm.getRecordById("Accounts",accountId.toLong());
+if(accountResp != null && accountResp.get("Account_Name") != null)
+{
+	accountName = accountResp.get("Account_Name");
+}
+// Fetch Billing Address details for naming
+billingStreet = "";
+billingCity = "";
+billingResp = zoho.crm.getRecordById("Billing_Address",billingAddressId.toLong());
+if(billingResp != null)
+{
+	if(billingResp.get("Billing_Street") != null)
+	{
+		billingStreet = billingResp.get("Billing_Street");
+	}
+	if(billingResp.get("Billing_City") != null)
+	{
+		billingCity = billingResp.get("Billing_City");
+	}
+}
+// BUILD USER-FRIENDLY NAME: "Luc Lamarche - 123 Main St, Toronto"
+junctionName = accountName;
+if(billingStreet != "")
+{
+	junctionName = junctionName + " - " + billingStreet;
+}
+if(billingCity != "")
+{
+	junctionName = junctionName + ", " + billingCity;
+}
+// Check if junction already exists
+searchCriteria = "Accounts:equals:" + accountId + " and Billing_Address:equals:" + billingAddressId;
+existingJunction = zoho.crm.searchRecords("Account_Billing_Address",searchCriteria);
+if(existingJunction != null && existingJunction.size() > 0)
+{
+	firstRecord = existingJunction.get(0);
+	if(firstRecord != null && firstRecord.get("id") != null)
+	{
+		info "Junction already exists: " + firstRecord.get("id");
+		return firstRecord.get("id").toString();
+	}
+}
+// Create new junction with user-friendly name
+junctionMap = Map();
+junctionMap.put("Name",junctionName);
+junctionMap.put("Accounts",accountId);
+junctionMap.put("Billing_Address",billingAddressId);
+// ⬇️ ADD THIS LINE - Populate the new "Account Billing Address" field ⬇️
+junctionMap.put("Account_Billing_Address",billingAddressText);
+// ⬆️ Use your actual field API name (check in Setup → Fields) ⬆️
+createResp = zoho.crm.createRecord("Account_Billing_Address",junctionMap);
+info "Create Account_Billing_Address Response: " + createResp;
+if(createResp != null && createResp.get("id") != null)
+{
+	return createResp.get("id").toString();
+}
+return '{"code":"error", "message":"Failed to create junction"}';
+}

@@ -1,0 +1,41 @@
+void automation.scheduleCustomEmailFucntion(String scheduleId)
+{
+// Argument: reminderId (Int)
+// 1. Get the Reminder Record
+reminder = zoho.crm.getRecordById("Custom_Reminders",scheduleId);
+info reminder;
+// 2. Extract Details
+recipientString = ifnull(reminder.get("Recipients"),"");
+subjectEmail = ifnull(reminder.get("Subject"),"Reminder");
+body = ifnull(reminder.get("Message_Body"),"");
+scheduleTime = reminder.get("Schedule_Time");
+// 3. Validation
+if(recipientString == "")
+{
+	info recipientString;
+	info "No recipients found";
+	return;
+}
+// 4. Split Recipients (Handle comma separation)
+emailList = recipientString.toList(",");
+// 5. Send Email Loop
+for each  email in emailList
+{
+	info email;
+	email = email.trim();
+	if(email.contains("@"))
+	{
+		sendmail
+		[
+			from :zoho.adminuserid
+			to :email
+			subject :subjectEmail
+			message :body
+		]
+	}
+}
+// 6. Update Status to 'Sent'
+updateMap = Map();
+updateMap.put("Status","Sent");
+zoho.crm.updateRecord("Custom_Reminders",scheduleId,updateMap);
+}

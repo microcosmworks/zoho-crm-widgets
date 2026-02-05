@@ -1,0 +1,200 @@
+string standalone.handleContact(Map contactInfo,String accountId)
+{
+contactIdToLink = "";
+if(contactInfo == null)
+{
+	info "contactInfo is null";
+	return "";
+}
+existingId = contactInfo.get("existingId");
+// Get roles from payload (array like ["TENANT", "BILLING"])
+contactRoles = contactInfo.get("roles");
+// ============================================================
+// CASE 1: Update Existing Contact
+// ============================================================
+if(existingId != null && existingId != "")
+{
+	info "Using existing Contact: " + existingId;
+	updateMap = Map();
+	// Update basic fields if provided
+	if(contactInfo.get("name") != null && contactInfo.get("name") != "")
+	{
+		fullName = contactInfo.get("name");
+		spaceIndex = fullName.indexOf(" ");
+		if(spaceIndex > 0)
+		{
+			firstName = fullName.subString(0,spaceIndex);
+			lastName = fullName.subString(spaceIndex + 1);
+			updateMap.put("First_Name",firstName);
+			updateMap.put("Last_Name",lastName);
+		}
+		else
+		{
+			updateMap.put("Last_Name",fullName);
+		}
+	}
+	if(contactInfo.get("email") != null && contactInfo.get("email") != "")
+	{
+		updateMap.put("Email",contactInfo.get("email"));
+	}
+	if(contactInfo.get("phone") != null && contactInfo.get("phone") != "")
+	{
+		updateMap.put("Phone",contactInfo.get("phone"));
+	}
+	// UPDATE CONTACT ROLES - Pass as list for multi-select field
+	if(contactRoles != null && contactRoles.size() > 0)
+	{
+		updateMap.put("Contact_Roles",contactRoles);
+		info "Setting Contact Roles: " + contactRoles;
+	}
+	// Link to Account
+	if(accountId != null && accountId != "")
+	{
+		updateMap.put("Account_Name",accountId);
+	}
+	if(!updateMap.isEmpty())
+	{
+		updateResp = zoho.crm.updateRecord("Contacts",existingId.toLong(),updateMap);
+		info "Contact Update Response: " + updateResp;
+	}
+	return existingId.toString();
+}
+// ============================================================
+// CASE 2: Search by Email (find existing contact)
+// ============================================================
+emailToSearch = contactInfo.get("email");
+if(emailToSearch != null && emailToSearch != "")
+{
+	info "Searching for contact by email: " + emailToSearch;
+	searchResp = zoho.crm.searchRecords("Contacts","(Email:equals:" + emailToSearch + ")");
+	if(searchResp != null && searchResp.size() > 0)
+	{
+		contactIdToLink = searchResp.get(0).get("id").toString();
+		info "Found existing contact by email: " + contactIdToLink;
+		// Update the existing contact with new details
+		updateMap = Map();
+		if(contactInfo.get("name") != null && contactInfo.get("name") != "")
+		{
+			fullName = contactInfo.get("name");
+			spaceIndex = fullName.indexOf(" ");
+			if(spaceIndex > 0)
+			{
+				firstName = fullName.subString(0,spaceIndex);
+				lastName = fullName.subString(spaceIndex + 1);
+				updateMap.put("First_Name",firstName);
+				updateMap.put("Last_Name",lastName);
+			}
+			else
+			{
+				updateMap.put("Last_Name",fullName);
+			}
+		}
+		if(contactInfo.get("phone") != null && contactInfo.get("phone") != "")
+		{
+			updateMap.put("Phone",contactInfo.get("phone"));
+		}
+		if(contactRoles != null && contactRoles.size() > 0)
+		{
+			updateMap.put("Contact_Roles",contactRoles);
+		}
+		if(accountId != null && accountId != "")
+		{
+			updateMap.put("Account_Name",accountId);
+		}
+		if(!updateMap.isEmpty())
+		{
+			zoho.crm.updateRecord("Contacts",contactIdToLink.toLong(),updateMap);
+			info "Updated existing contact: " + contactIdToLink;
+		}
+		return contactIdToLink;
+	}
+}
+// ============================================================
+// CASE 3: Create New Contact
+// ============================================================
+contactMap = Map();
+// Name handling
+if(contactInfo.get("name") != null && contactInfo.get("name") != "")
+{
+	fullName = contactInfo.get("name");
+	spaceIndex = fullName.indexOf(" ");
+	if(spaceIndex > 0)
+	{
+		firstName = fullName.subString(0,spaceIndex);
+		lastName = fullName.subString(spaceIndex + 1);
+		contactMap.put("First_Name",firstName);
+		contactMap.put("Last_Name",lastName);
+	}
+	else
+	{
+		contactMap.put("Last_Name",fullName);
+	}
+}
+else
+{
+	contactMap.put("Last_Name","Unknown");
+}
+// Email
+if(contactInfo.get("email") != null && contactInfo.get("email") != "")
+{
+	contactMap.put("Email",contactInfo.get("email"));
+}
+// Phone
+if(contactInfo.get("phone") != null && contactInfo.get("phone") != "")
+{
+	contactMap.put("Phone",contactInfo.get("phone"));
+}
+// CONTACT ROLES - Pass as list for multi-select field
+if(contactRoles != null && contactRoles.size() > 0)
+{
+	contactMap.put("Contact_Roles",contactRoles);
+	info "Setting Contact Roles: " + contactRoles;
+}
+// Link to Account
+if(accountId != null && accountId != "")
+{
+	contactMap.put("Account_Name",accountId);
+}
+// Do Not Invoice flag
+if(contactInfo.get("doNotInvoice") == true)
+{
+	contactMap.put("Do_Not_Invoice",true);
+}
+createResp = zoho.crm.createRecord("Contacts",contactMap);
+info "Contact Create Response: " + createResp;
+if(createResp != null && createResp.get("id") != null)
+{
+	contactIdToLink = createResp.get("id").toString();
+}
+else if(createResp != null && createResp.get("code") == "DUPLICATE_DATA")
+{
+	// Contact already exists - use the existing one from error response
+	info "DUPLICATE_DATA detected, extracting existing contact ID";
+	duplicateDetails = createResp.get("details");
+	if(duplicateDetails != null && duplicateDetails.get("id") != null)
+	{
+		contactIdToLink = duplicateDetails.get("id").toString();
+		info "Using existing contact from DUPLICATE error: " + contactIdToLink;
+		// Update the existing contact with roles and account
+		updateMap = Map();
+		if(contactRoles != null && contactRoles.size() > 0)
+		{
+			updateMap.put("Contact_Roles",contactRoles);
+		}
+		if(accountId != null && accountId != "")
+		{
+			updateMap.put("Account_Name",accountId);
+		}
+		if(!updateMap.isEmpty())
+		{
+			zoho.crm.updateRecord("Contacts",contactIdToLink.toLong(),updateMap);
+			info "Updated duplicate contact: " + contactIdToLink;
+		}
+	}
+}
+return contactIdToLink;
+}
+
+
+
+

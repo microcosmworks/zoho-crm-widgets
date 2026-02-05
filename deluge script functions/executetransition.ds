@@ -1,0 +1,49 @@
+string standalone.executeTransition(Int leadId,String status)
+{
+info zoho.crm.getRecordById("Leads",leadId);
+bpResp = invokeurl
+[
+	url :"https://crmsandbox.zohocloud.ca/crm/v8/Leads/" + leadId + "/actions/blueprint"
+	type :GET
+	connection:"executetransition"
+];
+info bpResp;
+transitionId = "";
+blueprint = bpResp.get("blueprint");
+transitions = blueprint.get("transitions");
+info transitions;
+for each  t in transitions
+{
+	if(t.get("name") == status)
+	{
+		transitionId = t.get("id");
+		break;
+	}
+}
+info "Transition ID : " + transitionId;
+if(transitionId != "")
+{
+	blueprintMap = Map();
+	blueprintMap.put("transition_id",transitionId);
+	dataMap = Map();
+	blueprintMap.put("data",dataMap);
+	blueprintList = List();
+	blueprintList.add(blueprintMap);
+	finalMap = Map();
+	finalMap.put("blueprint",blueprintList);
+	response = invokeurl
+	[
+		url :"https://crmsandbox.zohocloud.ca/crm/v8/Leads/" + leadId + "/actions/blueprint"
+		type :PUT
+		parameters:finalMap.toString()
+		connection:"executetransition"
+		content-type:"application/json"
+	];
+	info response;
+}
+else
+{
+	info "No valid transition found for this state";
+}
+return "";
+}

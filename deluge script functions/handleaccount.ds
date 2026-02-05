@@ -1,0 +1,220 @@
+string standalone.handleAccount(Map accountInfo,Map billingInfo,Map contactInfo,String scenario,Map rootAddress)
+{
+try 
+{
+	accountIdToLink = null;
+	// 1. Check if Existing ID Provided
+	if(accountInfo != null && accountInfo.get("existingId") != null && accountInfo.get("existingId") != "")
+	{
+		accountIdToLink = accountInfo.get("existingId");
+		try 
+		{
+			testId = accountIdToLink.get("id");
+			if(testId != null && testId != "")
+			{
+				accountIdToLink = testId;
+				info "Extracted existingId from object: " + accountIdToLink;
+			}
+		}
+		catch (e)
+		{
+			// Not a Map (it's already a string) - use as-is
+			info "existingId is a string: " + accountIdToLink;
+		}
+		// Ensure it's a Long/String compatible ID
+		// In Deluge, we can return it directly.
+		// Check if we need to update account with contact details (Landlord sync)
+		if(accountInfo.get("updateWithContact") == true)
+		{
+			updateAccountMap = Map();
+			if(accountInfo.get("updateName") != null && accountInfo.get("updateName").trim() != "")
+			{
+				updateAccountMap.put("Account_Name",accountInfo.get("updateName"));
+			}
+			if(accountInfo.get("updatePhone") != null && accountInfo.get("updatePhone").trim() != "")
+			{
+				updateAccountMap.put("Phone",accountInfo.get("updatePhone"));
+			}
+			if(accountInfo.get("updateEmail") != null && accountInfo.get("updateEmail").trim() != "")
+			{
+				// Store in Email field (not just Description)
+				updateAccountMap.put("Email",accountInfo.get("updateEmail"));
+			}
+			if(!updateAccountMap.isEmpty())
+			{
+				updateAccResp = zoho.crm.updateRecord("Accounts",accountIdToLink.toLong(),updateAccountMap);
+				info "Account updated with contact details: " + updateAccResp;
+			}
+		}
+		if(accountInfo.get("updateBillingAddress") == true && accountInfo.get("newBillingAddress") != null)
+		{
+			billingAddrMap = Map();
+			newBillingAddr = accountInfo.get("newBillingAddress");
+			if(newBillingAddr.get("street") != null)
+			{
+				billingAddrMap.put("Billing_Street",newBillingAddr.get("street"));
+			}
+			if(newBillingAddr.get("city") != null)
+			{
+				billingAddrMap.put("Billing_City",newBillingAddr.get("city"));
+			}
+			if(newBillingAddr.get("province") != null)
+			{
+				billingAddrMap.put("Billing_State",newBillingAddr.get("province"));
+			}
+			if(newBillingAddr.get("postal") != null)
+			{
+				billingAddrMap.put("Billing_Code",newBillingAddr.get("postal"));
+			}
+			if(newBillingAddr.get("country") != null)
+			{
+				billingAddrMap.put("Billing_Country",newBillingAddr.get("country"));
+			}
+			if(!billingAddrMap.isEmpty())
+			{
+				updateBillingResp = zoho.crm.updateRecord("Accounts",accountIdToLink.toLong(),billingAddrMap);
+				info "Account billing address updated: " + updateBillingResp;
+			}
+		}
+	}
+	// 2. Scenario Specific: Tenant might provide 'landlordAccountId'
+	else if(accountInfo != null && accountInfo.get("landlordAccountId") != null)
+	{
+		accountIdToLink = accountInfo.get("landlordAccountId");
+	}
+	// 3. Create New Account (if no ID found)
+	if(accountIdToLink == null)
+	{
+		newAccountMap = Map();
+		// Name Logic
+		accountName = "Converted Account";
+		if(accountInfo.get("newName") != null && accountInfo.get("newName").trim() != "")
+		{
+			accountName = accountInfo.get("newName");
+		}
+		else if(accountInfo.get("newLandlordName") != null && accountInfo.get("newLandlordName").trim() != "")
+		{
+			accountName = accountInfo.get("newLandlordName");
+		}
+		else if(contactInfo != null && contactInfo.get("name") != null && contactInfo.get("name").trim() != "")
+		{
+			// Fallback: Use Contact Name if no specific Account Name is provided
+			accountName = contactInfo.get("name");
+		}
+		newAccountMap.put("Account_Name",accountName);
+		// Type Logic - Check accountInfo.type FIRST, then use scenario
+		accountTypeValue = "";
+		if(accountInfo.get("type") != null && accountInfo.get("type") != "")
+		{
+			accountTypeValue = accountInfo.get("type");
+			info "Using Account Type from payload: " + accountTypeValue;
+		}
+		else if(scenario == "LANDLORD/OWNER" || scenario == "LANDLORD")
+		{
+			accountTypeValue = "Landlord";
+		}
+		else if(scenario != null)
+		{
+			accountTypeValue = scenario;
+		}
+		if(accountTypeValue != "")
+		{
+			newAccountMap.put("Account_Type",accountTypeValue);
+		}
+		// Phone/Email (from accountInfo or contactInfo fallback)
+		// Check "newPhone" first, then "newLandlordPhone" specific to Tenant scenario
+		phoneValue = "";
+		if(accountInfo.get("newPhone") != null && accountInfo.get("newPhone") != "")
+		{
+			phoneValue = accountInfo.get("newPhone");
+		}
+		else if(accountInfo.get("newLandlordPhone") != null && accountInfo.get("newLandlordPhone") != "")
+		{
+			phoneValue = accountInfo.get("newLandlordPhone");
+		}
+		else if(contactInfo != null && contactInfo.get("phone") != null && contactInfo.get("phone") != "")
+		{
+			phoneValue = contactInfo.get("phone");
+		}
+		if(phoneValue != "")
+		{
+			newAccountMap.put("Phone",phoneValue);
+			info "Setting Account Phone: " + phoneValue;
+		}
+		// EMAIL - Check all possible sources
+		emailValue = "";
+		if(accountInfo.get("newEmail") != null && accountInfo.get("newEmail") != "")
+		{
+			emailValue = accountInfo.get("newEmail");
+		}
+		else if(accountInfo.get("newLandlordEmail") != null && accountInfo.get("newLandlordEmail") != "")
+		{
+			emailValue = accountInfo.get("newLandlordEmail");
+		}
+		else if(contactInfo != null && contactInfo.get("email") != null && contactInfo.get("email") != "")
+		{
+			emailValue = contactInfo.get("email");
+		}
+		if(emailValue != "")
+		{
+			newAccountMap.put("Email",emailValue);
+			info "Setting Account Email: " + emailValue;
+		}
+		// Billing Info (Custom Fields)
+		if(billingInfo != null)
+		{
+			if(billingInfo.get("centralized") != null)
+			{
+				newAccountMap.put("Centralized_Billing__c",billingInfo.get("centralized"));
+			}
+			if(billingInfo.get("usage") != null)
+			{
+				newAccountMap.put("Billing_Usage__c",billingInfo.get("usage"));
+			}
+			if(billingInfo.get("sourceAccountId") != null)
+			{
+				newAccountMap.put("Billing_Source_Account__c",billingInfo.get("sourceAccountId"));
+			}
+		}
+		// Address Logic (Check explicit address first, then clone if needed)
+		// Use root address map if available, otherwise check scenario-specific
+		addressSource = rootAddress;
+		// If explicit 'landlordAddress' exists (e.g. Tenant scenario), prefer that
+		if(accountInfo.get("landlordAddress") != null)
+		{
+			addressSource = accountInfo.get("landlordAddress");
+		}
+		if(addressSource != null && !addressSource.isEmpty())
+		{
+			// Map to Billing Address (Standard Account Fields)
+			newAccountMap.put("Billing_Street",addressSource.get("street"));
+			newAccountMap.put("Billing_City",addressSource.get("city"));
+			newAccountMap.put("Billing_State",addressSource.get("province"));
+			newAccountMap.put("Billing_Code",addressSource.get("postal"));
+			newAccountMap.put("Billing_Country",addressSource.get("country"));
+		}
+		info "Creating Account with map: " + newAccountMap;
+		createAccResp = zoho.crm.createRecord("Accounts",newAccountMap);
+		info "Account Create Response: " + createAccResp;
+		if(createAccResp.get("id") != null)
+		{
+			accountIdToLink = createAccResp.get("id");
+		}
+		else
+		{
+			return ('{"code":"error", "message":"Account Creation Failed", "details":' + createAccResp.toString()) + '}';
+		}
+	}
+	if(accountIdToLink != null)
+	{
+		return accountIdToLink.toString();
+	}
+	return "";
+}
+catch (e)
+{
+	info "error occured in handle account " + e.toString();
+	return ('{"code":"error", "message":"Account Creation Failed", "details":' + e.toString()) + '}';
+}
+return "";
+}

@@ -1,0 +1,185 @@
+string standalone.widgetConvertLeadMain(String arguments)
+{
+// ============================================================
+// 1. INPUT PARSING & VALIDATION
+// ============================================================
+if(arguments == null || arguments.trim() == "")
+{
+	return '{"code":"error", "message":"Missing payload"}';
+}
+leadPayload = Map();
+try 
+{
+	leadPayload = zoho.encryption.urlDecode(arguments).toMap();
+}
+catch (e)
+{
+	return '{"code":"error", "message":"JSON Parser Error: ' + e + '"}';
+}
+if(leadPayload == null)
+{
+	return '{"code":"error", "message":"Invalid JSON"}';
+}
+leadId = leadPayload.get("leadId");
+if(leadId == null)
+{
+	return '{"code":"error", "message":"Lead ID required"}';
+}
+// ============================================================
+// CHECK IF LEAD ALREADY CONVERTED
+// ============================================================
+leadRecord = zoho.crm.getRecordById("Leads",leadId.toLong());
+if(leadRecord != null)
+{
+	leadStatus = ifnull(leadRecord.get("Lead_Status"),"");
+	leadStatusLower = leadStatus.toLowerCase();
+	info "Lead Status: " + leadStatus;
+	// Check if lead is already converted
+	if(leadStatusLower.contains("converted") || leadStatus == "Converted" || leadStatus == "Closed-Converted" || leadStatus == "Closed - Converted")
+	{
+		info "Lead already converted, returning error";
+		return '{"code":"error", "message":"This lead has already been converted. Cannot convert again."}';
+	}
+	// Also check if Converted_Deal_Id is populated
+	convertedDealId = leadRecord.get("Converted_Deal_Id");
+	if(convertedDealId != null && convertedDealId != "")
+	{
+		info "Lead has Converted_Deal_Id: " + convertedDealId;
+		return '{"code":"error", "message":"This lead has already been converted. Deal ID: ' + convertedDealId + '"}';
+	}
+}
+else
+{
+	// Lead not found - check if a deal exists
+	dealSearch = zoho.crm.searchRecords("Deals","(Converted_Lead_Id:equals:" + leadId + ")");
+	if(dealSearch != null && dealSearch.size() > 0)
+	{
+		existingDeal = dealSearch.get(0);
+		info "Deal already exists for this lead: " + existingDeal.get("id");
+		return ('{"code":"error", "message":"This lead has already been converted. Deal ID: ' + existingDeal.get("id")) + '"}';
+	}
+}
+// ============================================================
+// EXTRACT PAYLOAD DATA
+// ============================================================
+scenario = leadPayload.get("scenario");
+accountInfo = leadPayload.get("account");
+contactInfo = leadPayload.get("contact");
+billingInfo = leadPayload.get("billing");
+serviceLocation = leadPayload.get("serviceLocation");
+billingAddress = leadPayload.get("billingAddress");
+info "=== PAYLOAD RECEIVED ===";
+info "Scenario: " + scenario;
+info "Account Info: " + accountInfo;
+info "Contact Info: " + contactInfo;
+info "Service Location: " + serviceLocation;
+info "Billing Address: " + billingAddress;
+// Initial Validation
+if(scenario == null || accountInfo == null || contactInfo == null)
+{
+	return '{"code":"error", "message":"Incomplete data payload (missing scenario, account, or contact info)"}';
+}
+// ============================================================
+// 2. ACCOUNT STRATEGY
+// ============================================================
+accountIdToLink = standalone.handleAccount(accountInfo,billingInfo,contactInfo,scenario,billingAddress);
+if(accountIdToLink != null && accountIdToLink.toString().contains("error"))
+{
+	return accountIdToLink;
+}
+info "Account ID to Link: " + accountIdToLink;
+// ============================================================
+// 3. CONTACT STRATEGY
+// ============================================================
+contactIdToLink = standalone.handleContact(contactInfo,accountIdToLink);
+info "contactId to link: " + contactIdToLink;
+if(contactIdToLink != null && contactIdToLink.toString().contains("error"))
+{
+	return contactIdToLink;
+}
+info "Contact ID to Link: " + contactIdToLink;
+// ============================================================
+// 4. SERVICE LOCATION STRATEGY
+// ============================================================
+serviceLocationId = standalone.handleServiceLocation(serviceLocation,contactInfo,accountIdToLink);
+if(serviceLocationId != null && serviceLocationId.toString().contains("error"))
+{
+	return serviceLocationId;
+}
+info "Service Location ID: " + serviceLocationId;
+// ============================================================
+// 5. BILLING ADDRESS STRATEGY
+// ============================================================
+billingAddressId = null;
+if(billingAddress != null)
+{
+	billingAddressId = standalone.handleBillingAddress(billingAddress,accountIdToLink);
+	if(billingAddressId != null && billingAddressId.toString().contains("error"))
+	{
+		return billingAddressId;
+	}
+	info "Billing Address ID: " + billingAddressId;
+}
+// ============================================================
+// 6. JUNCTION: Contact_Service_Locations
+// ============================================================
+if(contactIdToLink != null && contactIdToLink != "" && serviceLocationId != null && serviceLocationId != "")
+{
+	// Get contact roles from payload
+	contactRoles = contactInfo.get("roles");
+	contactType = scenario;
+	if(contactRoles != null && contactRoles.size() > 0)
+	{
+		contactType = contactRoles.get(0);
+	}
+	junctionResult = standalone.contactLocationServiceFunction(contactIdToLink,serviceLocationId,contactType,accountIdToLink);
+	info "Contact-ServiceLocation Junction Result: " + junctionResult;
+}
+// ============================================================
+// 7. JUNCTION: Account_Billing_Addresses
+// ============================================================
+if(accountIdToLink != null && accountIdToLink != "" && billingAddressId != null && billingAddressId != "")
+{
+	// Build billing address text from payload
+	billingAddressText = "";
+	if(billingAddress != null)
+	{
+		billStreet = ifnull(billingAddress.get("street"),"");
+		billCity = ifnull(billingAddress.get("city"),"");
+		billProvince = ifnull(billingAddress.get("province"),"");
+		billPostal = ifnull(billingAddress.get("postal"),"");
+		billCountry = ifnull(billingAddress.get("country"),"");
+		// Build address string: "123 Main St, Toronto, ON M5V 1A1, Canada"
+		addressParts = List();
+		if(billStreet != "")
+		{
+			addressParts.add(billStreet);
+		}
+		if(billCity != "")
+		{
+			addressParts.add(billCity);
+		}
+		if(billProvince != "")
+		{
+			addressParts.add(billProvince);
+		}
+		if(billPostal != "")
+		{
+			addressParts.add(billPostal);
+		}
+		if(billCountry != "")
+		{
+			addressParts.add(billCountry);
+		}
+		billingAddressText = addressParts.toString(", ");
+	}
+	// Pass the billing address text as 3rd parameter
+	junctionResult = standalone.accountBillingAddressFunction(accountIdToLink,billingAddressId,billingAddressText);
+	info "Account-BillingAddress Junction Result: " + junctionResult;
+}
+// ============================================================
+// 8. DEAL STRATEGY & CONVERSION
+// ============================================================
+conversionResponse = standalone.convertLeadWithDeal(leadId,accountIdToLink,contactIdToLink,serviceLocationId,contactInfo,scenario);
+return conversionResponse;
+}

@@ -1,0 +1,118 @@
+string standalone.handleServiceLocation(Map serviceLocation,Map contactInfo,String accountId)
+{
+serviceLocationId = "";
+if(serviceLocation == null)
+{
+	info "serviceLocation is null, skipping";
+	return "";
+}
+existingId = serviceLocation.get("existingId");
+// Get contact name for naming
+contactName = "";
+if(contactInfo != null && contactInfo.get("name") != null && contactInfo.get("name") != "")
+{
+	contactName = contactInfo.get("name");
+}
+// ============================================================
+// CASE 1: Use/Update Existing Service Location
+// ============================================================
+if(existingId != null && existingId != "")
+{
+	info "Existing Service Location found: " + existingId;
+	updateMap = Map();
+	// UPDATE NAME when street changes
+	street = serviceLocation.get("street");
+	if(street != null && street != "")
+	{
+		newName = street;
+		if(contactName != "")
+		{
+			newName = street + " - " + contactName;
+		}
+		updateMap.put("Name",newName);
+		// UPDATE THE NAME!
+		updateMap.put("Street",street);
+	}
+	if(serviceLocation.get("city") != null)
+	{
+		updateMap.put("City",serviceLocation.get("city"));
+	}
+	if(serviceLocation.get("province") != null)
+	{
+		updateMap.put("Province",serviceLocation.get("province"));
+	}
+	if(serviceLocation.get("postal") != null)
+	{
+		updateMap.put("Postal_Code",serviceLocation.get("postal"));
+	}
+	if(serviceLocation.get("country") != null)
+	{
+		updateMap.put("Country",serviceLocation.get("country"));
+	}
+	if(serviceLocation.get("roomLocation") != null)
+	{
+		updateMap.put("Room_Location",serviceLocation.get("roomLocation"));
+	}
+	if(serviceLocation.get("addressType") != null && serviceLocation.get("addressType") != "")
+	{
+		updateMap.put("Address_Type",serviceLocation.get("addressType"));
+	}
+	// Build full address
+	streetVal = ifnull(serviceLocation.get("street"),"");
+	cityVal = ifnull(serviceLocation.get("city"),"");
+	provinceVal = ifnull(serviceLocation.get("province"),"");
+	postalVal = ifnull(serviceLocation.get("postal"),"");
+	countryVal = ifnull(serviceLocation.get("country"),"");
+	fullAddr = streetVal + ", " + cityVal + ", " + provinceVal + ", " + countryVal + ", " + postalVal;
+	updateMap.put("Service_Address",fullAddr);
+	if(!updateMap.isEmpty())
+	{
+		updateResp = zoho.crm.updateRecord("Service_Locations",existingId.toLong(),updateMap);
+		info "Updated Service Location Response: " + updateResp;
+	}
+	return existingId.toString();
+}
+// ============================================================
+// CASE 2: Create New Service Location
+// ============================================================
+if(accountId != null && accountId != "")
+{
+	serviceMap = Map();
+	slName = "Service Location";
+	if(serviceLocation.get("street") != null && serviceLocation.get("street") != "")
+	{
+		slName = serviceLocation.get("street");
+	}
+	if(contactName != "")
+	{
+		slName = slName + " - " + contactName;
+	}
+	serviceMap.put("Name",slName);
+	serviceMap.put("Account",accountId);
+	if(serviceLocation.get("addressType") != null && serviceLocation.get("addressType") != "")
+	{
+		serviceMap.put("Address_Type",serviceLocation.get("addressType"));
+	}
+	street = ifnull(serviceLocation.get("street"),"");
+	city = ifnull(serviceLocation.get("city"),"");
+	province = ifnull(serviceLocation.get("province"),"");
+	postal = ifnull(serviceLocation.get("postal"),"");
+	country = ifnull(serviceLocation.get("country"),"");
+	roomLocation = ifnull(serviceLocation.get("roomLocation"),"");
+	fullAddr = street + ", " + city + ", " + province + ", " + country + ", " + postal;
+	serviceMap.put("Service_Address",fullAddr);
+	serviceMap.put("Street",street);
+	serviceMap.put("City",city);
+	serviceMap.put("Province",province);
+	serviceMap.put("Postal_Code",postal);
+	serviceMap.put("Country",country);
+	serviceMap.put("Room_Location",roomLocation);
+	createSLResp = zoho.crm.createRecord("Service_Locations",serviceMap);
+	info "Create Service Location Response: " + createSLResp;
+	if(createSLResp != null && createSLResp.get("id") != null)
+	{
+		serviceLocationId = createSLResp.get("id").toString();
+	}
+}
+return serviceLocationId;
+}

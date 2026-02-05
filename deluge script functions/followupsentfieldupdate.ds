@@ -1,0 +1,31 @@
+void automation.FollowupSentFieldUpdate(String leadId)
+{
+resp = zoho.crm.getRecordById("Leads",leadId);
+// info resp;
+// templateIdOne = "";
+// templateIdTwo = "";
+// templateIdThree = "";
+// leadStatus = resp.get("Lead_Status");
+// if(leadStatus == "New Lead"){
+// 	templateIdOne  = "56591000000955616";
+// 	templateIdTwo = "56591000000955625";
+// 	templateIdThree =  "56591000000955634";
+// }
+// templateurl = "https://crmsandbox.zohocloud.ca/crm/v8/settings/email_templates/";
+// // API URL
+// emailTemplatesOne = invokeurl
+// [
+// 	url :templateurl + templateIdOne
+// 	type :GET
+// 	connection:"zohoemailtemplates"
+// ];
+// info emailTemplatesOne;
+updateValue = Map();
+updateValue.put("Follow_up_1_Email_Template",null);
+updateValue.put("Follow_up_2_Email_Template",null);
+updateValue.put("Follow_up_3_Email_Template",null);
+// updateValue.put("Follow_Up_1_Status","Pending");
+// updateValue.put("Follow_Up_2_Status","Pending");
+// updateValue.put("Follow_Up_3_Status","Pending");
+info zoho.crm.updateRecord("Leads",leadId,updateValue);
+}
