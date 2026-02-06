@@ -1,0 +1,128 @@
+// =====================================================================
+// SCRIPT NAME : showAllFields
+// PATH        : Additional Query Form
+//               > Created
+//               > Load of the form
+// TRIGGER     : On Load
+// PURPOSE     :
+//   - Load all questions linked to the selected form template
+//   - Populate SubForm dynamically with questions
+//   - Set and lock the Form Name field
+// =====================================================================
+
+allQues = FormQuestions[FormTemplate == input.form_id.toLong()];
+formName = FormTemplate[ID == input.form_id.toLong()];
+// alert formName.Title;
+input.Form_Name = formName.Title;
+// disable FinalForm.Form_Name ;
+disable Form_Name;
+// alert(allQues);
+
+for each q in allQues
+{
+	// alert(q.Question_Text);	
+	myNewRow = FinalForm.SubForm();
+	myNewRow.Question = q.Questions;
+	// myNewRow.Type_field = q.Field_Type;
+	input.SubForm.insert(myNewRow);
+}
+
+disable SubForm.Question;
+// disable SubForm.Type_field;
+
+
+
+// =====================================================================
+// SCRIPT NAME : submitAllData
+// PATH        : Additional Query Form
+//               > Created or Edited
+//               > Successful form submission
+// TRIGGER     : On Success
+// PURPOSE     :
+//   - Store question/answer pairs into FormResponses
+//   - Link responses to Lead and Form
+//   - Notify Lead owner by email
+//   - Clear follow-up fields based on Lead status
+// =====================================================================
+
+rowsList = List();
+leadId = input.lead_id;
+
+for each row in input.SubForm
+{
+	rowMap = Map();
+	rowMap.put("Question", row.Question);
+	rowMap.put("Answer", row.Answer);
+	rowsList.add(rowMap);
+
+	stored = insert into FormResponses
+	[
+		Added_User = zoho.loginuser
+		lead_id    = input.lead_id
+		form_id    = input.form_id
+		Questiom  = row.Question
+		Answer    = row.Answer
+	];
+}
+
+leadRec = zoho.crm.getRecordById("Leads", leadId.toLong());
+if(leadRec == null)
+{
+	return;
+}
+
+// -----------------------------
+// Notify Lead Owner
+// -----------------------------
+
+ownerMap = leadRec.get("Owner");
+managerEmail = ownerMap.get("email");
+if(managerEmail == null || managerEmail == "")
+{
+	return;
+}
+
+crmUrl = "https://crmsandbox.zohocloud.ca/crm/sandboxcreator/tab/Leads/" + leadId;
+subject = "Questionnaire Submitted – Action Required";
+message =
+	"A client has submitted the questionnaire.\n\n" +
+	"Lead Name: " + leadRec.get("Full_Name") + "\n" +
+	"Lead Status: " + leadRec.get("Lead_Status") + "\n" +
+	"View Lead: " + crmUrl;
+
+sendmail
+[
+	from    : zoho.adminuserid
+	to      : managerEmail
+	subject : subject
+	message : message
+]
+
+// -----------------------------
+// Clear Follow-Up Fields
+// -----------------------------
+
+currentStatus = leadRec.get("Lead_Status");
+updateMap = Map();
+doUpdate = false;
+
+if(currentStatus == "Questionnaire Sent")
+{
+	updateMap.put("Follow_Up_1", null);
+	updateMap.put("Follow_Up_2", null);
+	updateMap.put("Follow_Up_3", null);
+	doUpdate = true;
+}
+else if(currentStatus == "Additional Info Required")
+{
+	updateMap.put("Follow_Up_1", null);
+	updateMap.put("Follow_Up_2", null);
+	updateMap.put("Follow_Up_3", null);
+	doUpdate = true;
+}
+
+if(doUpdate)
+{
+	val = zoho.crm.updateRecord("Leads", leadId.toLong(), updateMap);
+	info val;
+}
