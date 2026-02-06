@@ -1,3 +1,21 @@
+<- Comments -> 
+
+This function is the main Lead Conversion orchestrator used by a widget.
+It validates the input, prevents duplicate conversions, then creates or links the required records (Account, Contact, Service Location, Billing Address) and their junctions.
+Finally, it converts the Lead into a Deal and returns the conversion result or an error message.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  widgetConvertLeadMain
+-Function Name = widgetConvertLeadMain
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
+
 string standalone.widgetConvertLeadMain(String arguments)
 {
 // ============================================================

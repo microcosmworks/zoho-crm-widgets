@@ -1,3 +1,22 @@
+<- Comments -> 
+
+This function dynamically creates a custom form in Zoho Creator for a specific Lead.
+It:
+Takes a form title and list of questions from the input data
+Creates a form “header” record and then adds each question under it
+Generates and returns a public form link, pre-filled with the Lead ID and form ID
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  dynamicFormFunction
+-Function Name = dynamicFormFunction
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.dynamicFormFunction(Map formDetails,String lead_id)
 {
 // Purpose: create a custom dynamic form in Zoho Creator for a lead.

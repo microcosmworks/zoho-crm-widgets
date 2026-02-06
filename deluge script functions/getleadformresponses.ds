@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function retrieves all Zoho Creator form responses linked to a specific Lead.
+It pulls data from multiple Creator reports, groups related form responses together, and distinguishes between master and non-master responses.
+The function returns a consolidated list of all form submissions associated with the Lead.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  getLeadFormResponses
+-Function Name = getLeadFormResponses
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.getLeadFormResponses(String leadId)
 {
 // Purpose: fetch all Zoho Creator form responses tied to a lead ID.

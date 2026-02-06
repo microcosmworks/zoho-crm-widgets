@@ -1,14 +1,37 @@
-// changeServiceType 
-// Page Details
-// Category - Module
-// PageCreate Page (Standard)
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Field Event
-// Field - Service Type
-// Event - 
+/*
+What it does
+This client script runs when the Service Type field changes on the Lead creation page.
+It checks the additional service category fields and hides them if they do not have
+any value, helping keep the form clean and user-friendly.
 
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Create Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Field Event
+- Field: Service Type
+- Event: onChange
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Create Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Field Event
+   - Field: Service Type
+   - Event: onChange
+5. Paste this script code
+6. Save and publish the script
+*/
 
 // Code -->
 

@@ -1,12 +1,35 @@
-// getDetials
-// Page Details
-// Category - Module
-// Page -  (Standard) Edit Page 
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Page Event
-// Event - onLoad
+/*
+What it does
+This client script runs when the Lead edit page loads.
+It checks the additional service category fields and hides them if they do not
+contain any values, keeping the edit form clean and easier to work with.
+
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Edit Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Page Event
+- Event: onLoad
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Edit Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Page Event
+   - Event: onLoad
+5. Paste this script code
+6. Save and publish the script
+*/
 
 
 // Code -->

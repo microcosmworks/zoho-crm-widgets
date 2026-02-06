@@ -1,13 +1,37 @@
-// postalCodeUpdate 
-// Page Details
-// Category - Module
-// Page - Detail Page (Standard)
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Field Event
-// Field - Postal Code
-// EventonBeforeUpdate
+/*
+What it does
+This client script validates and formats the Postal Code field on the Lead detail page.
+Before the record is saved, it checks that the value is a valid Canadian postal code,
+auto-formats it to the standard format (A1A 1A1), and prevents saving if the value is invalid.
+
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Detail Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Field Event
+- Field: Postal Code
+- Event: onBeforeUpdate
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Detail Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Field Event
+   - Field: Postal Code
+   - Event: onBeforeUpdate
+5. Paste this script code
+6. Save and publish the script
+*/
 
 
 // Code -->

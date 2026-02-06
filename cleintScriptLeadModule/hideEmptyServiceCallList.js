@@ -1,12 +1,37 @@
-// hideEmptyServiceCallList 
-// Page Details
-// Category - Module
-// Page - Detail Page (Standard)
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Page Event
-// Event - onLoad
+/*
+What it does
+This client script runs when the Lead detail page loads.
+It hides empty Additional Service Category fields, follow-up related fields, and
+disables the Convert button unless the Lead status is set to "Ready to Convert".
+This helps keep the detail page clean and prevents users from converting a Lead
+before it is ready.
+
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Detail Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Page Event
+- Event: onLoad
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Detail Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Page Event
+   - Event: onLoad
+5. Paste this script code
+6. Save and publish the script
+*/
 
 
 // Code -->

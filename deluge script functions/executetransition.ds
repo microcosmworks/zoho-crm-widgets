@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function sends a dynamic form to a Lead by email or generates a shareable form link.
+It can create a custom Zoho Creator form from provided questions, generate a Lead-specific form link, and either return the link or embed it into a selected email template.
+If an email is sent, it updates the Lead with the email delivery status (success or failure).
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  executeTransition
+-Function Name = executeTransition
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.executeTransition(Int leadId,String status)
 {
 info zoho.crm.getRecordById("Leads",leadId);

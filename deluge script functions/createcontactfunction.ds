@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function checks a Lead and either links it to an existing Contact or creates a new Contact using the Lead’s details.
+It avoids duplicate Contacts by matching on key fields like name, email, and phone.
+Once done, it links the Lead to the Contact for clean CRM tracking.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  createContactFunction
+-Function Name = createContactFunction
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.createContactFunction(Int leadId)
 {
 // Purpose: create a Contact record linked to a Lead, using strict matching criteria (Email + Phone + First + Last).

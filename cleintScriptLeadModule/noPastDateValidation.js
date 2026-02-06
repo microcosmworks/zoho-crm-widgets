@@ -1,13 +1,38 @@
-// noPastDateValidation 
-// Page Details
-// Category - Module
-// Page - Create Page (Standard)
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Field Event
-// Field - Estimation Date
-// Event - onChange
+/*
+What it does
+This client script validates the Estimation Date field on the Lead creation page.
+When the field value changes, it checks that the selected date is not in the past.
+If a past date is selected, it shows an alert and clears the field immediately.
+
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Create Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Field Event
+- Field: Estimation Date
+- Event: onChange
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Create Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Field Event
+   - Field: Estimation Date
+   - Event: onChange
+5. Paste this script code
+6. Save and publish the script
+*/
+
 
 
 // Code -->

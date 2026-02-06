@@ -1,0 +1,14 @@
+whenever you read any file of creator scirpt then you have to imlpemenet in this way
+-> first open application on zoho creator in "edit mode"
+-> then create new workflow 
+-> and follow the step of path 
+    eg . 
+    Master-Form-All-Service-Call-Callback > Created or Edited > Successful form submission > storeFilesOnAttachments 
+    Select 
+    > Choose form -  "Master-Form-All-Service-Call-Callback" form name 
+    > Run when a record is  - Created or Edited
+    > When to trigger workflow - Successful form submission
+    > Name the workflow - storeFilesOnAttachments 
+
+-> Create workflow
+-> Paste code if editor is open or find "deluge script" and select, so that code space open and paste code in that codes space  

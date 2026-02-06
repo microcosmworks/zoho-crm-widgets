@@ -1,9 +1,40 @@
+/*
+What it does
+This client script runs when the "Add more service" button is clicked on the
+Lead edit page.
+It validates that a primary Service Type is selected, then progressively reveals
+additional service category fields (up to three levels) based on user input.
+If all available additional service fields are already in use, it notifies the
+user that no more services can be added.
 
-/** 
- * log("sample logging statement") --> can be used to print any data in the browser console.
- * ZDK module can be used for customising the UI and other functionalities.
- * return false to prevent <SAVE> action
-**/
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Edit Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Button Event
+- Button: Add more service
+- Event: onClick
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Edit Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Button Event
+   - Button: Add more service
+   - Event: onClick
+5. Paste this script code
+6. Save and publish the script
+*/
 
 /**
  * ZDK Button Click Script – Lead Module

@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function handles Account creation or linking based on the provided scenario and input data.
+It reuses an existing Account when available, updates it if required, or creates a new Account using contact, billing, and address details.
+In the end, it returns the Account ID to link with other records or an error if the process fails.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  handleAccount
+-Function Name = handleAccount
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.handleAccount(Map accountInfo,Map billingInfo,Map contactInfo,String scenario,Map rootAddress)
 {
 try 

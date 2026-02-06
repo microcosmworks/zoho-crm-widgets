@@ -1,13 +1,38 @@
-// noPastDate2 
-// Page Details
-// Category - Module
-// Page - Detail Page (Standard)
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Field Event
-// Field - Reach Later Date
-// Event - onBeforeUpdate
+/*
+What it does
+This client script prevents users from selecting a past date in the
+Reach Later Date field on the Lead detail page.
+Before saving the record, it validates the selected date against today’s date
+and clears the field if a past date is chosen.
+
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Detail Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Field Event
+- Field: Reach Later Date
+- Event: onBeforeUpdate
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Detail Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Field Event
+   - Field: Reach Later Date
+   - Event: onBeforeUpdate
+5. Paste this script code
+6. Save and publish the script
+*/
 
 
 // Code -->

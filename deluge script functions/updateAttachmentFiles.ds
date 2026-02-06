@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function copies files uploaded in a Lead’s Site Assessment Files field into the Lead’s CRM attachments.
+It checks for existing attachments to avoid duplicates, downloads only missing files, and attaches them to the Lead record.
+This keeps uploaded assessment files properly stored in the Attachments section.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  updateAttachmentFile
+-Function Name = updateAttachmentFile
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.updateAttachmentFile(String leadId)
 {
 // Purpose: copy files uploaded in the Lead's Site_Assessment_Files field

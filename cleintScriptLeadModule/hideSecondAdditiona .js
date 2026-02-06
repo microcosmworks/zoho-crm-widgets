@@ -1,3 +1,39 @@
+/*
+What it does
+This client script runs when the second Additional Service Category field changes
+on the Lead edit page.
+If the user selects "Remove", it shifts values from the third additional service
+fields into the second, clears the third fields, and hides them to keep the form
+organized.
+
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Edit Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Field Event
+- Field: Additional Service Category 2
+- Event: onChange
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Edit Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Field Event
+   - Field: Additional Service Category 2
+   - Event: onChange
+5. Paste this script code
+6. Save and publish the script
+*/
 // hideSecondAdditiona 
 // Page Details
 // Category - Module

@@ -1,14 +1,41 @@
-// Untitled 
-// Page Details
-// Category - Module
-// PageCreate Page (Standard)
-// Module - Leads
-// Layout - Standard
-// Event Details
-// Event Type - Button Event
-// Button - Add more service
-// Event - onClick
+/*
+What it does
+This client script runs when the "Add more service" button is clicked on the
+Lead creation page.
+It allows users to add up to three additional service categories in sequence.
+The script validates that the main Service Type is selected first, then
+progressively reveals the next available Additional Service Category field.
+If all additional service slots are already used, it shows a message indicating
+that no more services can be added.
 
+Where this client script runs
+
+Page Details
+- Category: Module
+- Module: Leads
+- Page: Create Page (Standard)
+- Layout: Standard
+
+Event Details
+- Event Type: Button Event
+- Button: Add more service
+- Event: onClick
+
+How to create
+1. Go to Setup → Developer Space → Client Scripts
+2. Click Create Script
+3. Select:
+   - Category: Module
+   - Module: Leads
+   - Page: Create Page (Standard)
+   - Layout: Standard
+4. Under Event Details:
+   - Event Type: Button Event
+   - Button: Add more service
+   - Event: onClick
+5. Paste this script code
+6. Save and publish the script
+*/
 
 // Code -->
 
@@ -30,13 +57,6 @@ const serviceNameVal = serviceName.getValue();
 const addServiceNameVal = addServiceName.getValue();
 const secAddServiceNameVal = secAddServiceName.getValue();
 
-/* Hide everything first */
-// addServiceCat.hide();
-// addServiceName.hide();
-// secAddServiceCat.hide();
-// secAddServiceName.hide();
-// thirdAddServiceCat.hide();
-// thirdAddServiceName.hide();
 
 console.log("value print now.....");
 

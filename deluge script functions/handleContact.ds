@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function handles creating or linking a Contact to an Account.
+It first tries to use or update an existing Contact, then searches by email to avoid duplicates, and only creates a new Contact if none is found.
+It also updates contact roles, account linkage, and key details, and finally returns the Contact ID.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  handleContact
+-Function Name = handleContact
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.handleContact(Map contactInfo,String accountId)
 {
 contactIdToLink = "";

@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function resets follow-up email tracking fields on a Lead.
+It clears the selected follow-up email templates (and is structured to support resetting follow-up statuses if needed).
+It’s mainly used to clean or reinitialize follow-up settings on a Lead record.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  FollowupSentFieldUpdate
+-Function Name = FollowupSentFieldUpdate
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.FollowupSentFieldUpdate(String leadId)
 {
 resp = zoho.crm.getRecordById("Leads",leadId);

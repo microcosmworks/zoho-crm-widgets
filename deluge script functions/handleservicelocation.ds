@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function handles creating or updating a Service Location for an Account.
+It reuses and updates an existing Service Location when an ID is provided, or creates a new one using the address and contact details.
+The function returns the Service Location ID for linking to other records.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  handleServiceLocation
+-Function Name = handleServiceLocation
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.handleServiceLocation(Map serviceLocation,Map contactInfo,String accountId)
 {
 serviceLocationId = "";

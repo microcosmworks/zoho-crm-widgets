@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function syncs the Follow-Up dates in the Lead’s Follow-Up Reminders subform.
+It updates the last three subform entries so their scheduled dates match the Lead’s Follow-Up 1, 2, and 3 fields.
+This keeps the subform aligned with the main Lead follow-up fields.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  updateSubfromField
+-Function Name = updateSubfromField
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.updateSubfromField(Int leadId)
 {
 leadVal = zoho.crm.getRecordById("Leads",leadId);

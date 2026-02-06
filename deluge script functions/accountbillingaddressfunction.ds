@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function links an Account to a Billing Address in Zoho CRM.
+It checks if the link already exists and reuses it if found; otherwise, it creates a new one with a clear, user-friendly name.
+The function then returns the ID of the linked record or an error if something goes wrong.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  accountBillingAddressFunction
+-Function Name = accountBillingAddressFunction
+-Category = standalone
+(paste given below code and arguments will be automatically setted)
+
+<- Code ->
+
 string standalone.accountBillingAddressFunction(String accountId,String billingAddressId,String billingAddressText)
 {
 if(accountId == null || accountId == "" || billingAddressId == null || billingAddressId == "")

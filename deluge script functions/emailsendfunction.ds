@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function sends a form to a Lead or generates a shareable form link.
+It can dynamically create a Zoho Creator form, build a Lead-specific form link, and either return the link or embed it into an email template and send it.
+After sending, it updates the Lead’s email status to show whether the email was sent successfully or failed.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  EmailSendFunction
+-Function Name = EmailSendFunction
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.EmailSendFunction(String leadId,String emailTemplateId,Map formDetails,String generateLink)
 {
 // Purpose: send an email to the lead or just return a form link.

@@ -1,0 +1,249 @@
+// =====================================================================
+// SCRIPT NAME : checkFormSubmitted
+// PATH        : Master-Form-Hot-Tub
+//               > Created
+//               > Load of the form
+// TRIGGER     : On Load
+// PURPOSE     :
+//   - Validate form access using form_id
+//   - Prevent duplicate form submissions
+//   - Block access if form already submitted
+// =====================================================================
+
+// openUrl("https://creatorapp.zohopublic.ca/lbelectric572/master-form/page-perma/loaderPage/feKYMOjmj7A7kyFvnKQu6gmBJU5rpr7MwWBrCQh6JfHnpwPr968CSuZts7eZuKSq0jnbv2eSKjdqfKQqPUr1CmFG23AnWhABzX0Q","same window");
+formId = input.form_id;
+primary = "<style> .zc-live-primary-btn, .zc-live-secondary-btn { display:none !important; } </style>";
+if(formId == null || formId.trim() == "")
+{
+	alert "Invalid form access.";
+	return;
+}
+// set hidden field
+// input.Form_Id = formId;
+// check if response already exists
+// existingResponse = Master_Form[Form_Id == formId];
+existingResponse = Master_Form_Generlink[form_id == formId];
+if(existingResponse.count() > 0)
+{
+	alert "Form already submitted.";
+	show plain;
+	return;
+}
+
+
+
+// =====================================================================
+// SCRIPT NAME : validateFormSubmission
+// PATH        : Master-Form-Hot-Tub
+//               > Created or Edited
+//               > Validations on form submission
+// TRIGGER     : On Form Submission (Validation)
+// PURPOSE     :
+//   - Prevent duplicate submissions
+//   - Validate email / phone based on contact type
+//   - Normalize and format phone number
+//   - Validate Canadian postal code
+//   - Ensure address line 1 is present
+// =====================================================================
+
+formId = input.form_id;
+existingResponse = Master_Form_Generator[form_id == formId];
+if(existingResponse.count() > 0)
+{
+	alert "Form already submitted.";
+	cancel submit;
+}
+mode = input.Select_contact_type;
+postal = input.Service_Address.postal_Code.trim().toUpperCase();
+phone = input.Phone_Number1;
+if(mode == "Email")
+{
+	if(input.Email_Address == "")
+	{
+		alert "Email is empty";
+		cancel submit;
+	}
+}
+else if(mode == "Phone")
+{
+	if(input.Phone_Number1 == "")
+	{
+		alert "Phone Number is empty";
+		cancel submit;
+	}
+	phone = input.Phone_Number1;
+	cleanPhone = phone.replaceAll("[^0-9]","");
+	if(cleanPhone.length() == 11 && cleanPhone.startsWith("1"))
+	{
+		cleanPhone = cleanPhone.subString(1,11);
+	}
+	if(cleanPhone.length() != 10)
+	{
+		alert "Please enter a valid 10-digit phone number (e.g. 506-234-5678)";
+		cancel submit;
+	}
+	input.Phone_Number1 =
+		cleanPhone.subString(0,3) + "-" +
+		cleanPhone.subString(3,6) + "-" +
+		cleanPhone.subString(6,10);
+}
+else
+{
+	if(input.Email_Address == "" || input.Phone_Number1 == "")
+	{
+		alert "Email and Phone are empty";
+		cancel submit;
+	}
+}
+pattern = "[A-Z][0-9][A-Z][ ]?[0-9][A-Z][0-9]";
+if(postal != "")
+{
+	if(!postal.matches(pattern))
+	{
+		alert "Please enter a valid Canadian postal code (e.g. A1A 1A1)";
+		cancel submit;
+	}
+}
+if(input.Service_Address.address_line_1 == "" || input.Service_Address.address_line_1 == null)
+{
+	alert "Address Line 1 is required.";
+	cancel submit;
+}
+
+
+
+// =====================================================================
+// SCRIPT NAME : phoneNumberSetter
+// PATH        : Master-Form-Hot-Tub
+//               > Created or Edited
+//               > Validations on form submission
+// TRIGGER     : On Form Submission (Validation)
+// PURPOSE     :
+//   - Enforce phone number when contact type is Phone or Both
+//   - Normalize phone digits
+//   - Format phone number as (XXX) XXX-XXXX
+// =====================================================================
+
+// 1. Empty check
+mode = input.Select_contact_type;
+if(mode == "Phone" || mode == "Both" && input.Phone_Number1 == null || input.Phone_Number1.trim() == "")
+{
+	alert "Phone number is required";
+	cancel submit;
+}
+// 2. Convert to string
+phone = input.Phone_Number1.toString();
+// 3. Remove everything except digits
+digits = phone.replaceAll("[^0-9]","");
+// 4. Remove country code (keep last 10 digits)
+if(digits.length() > 10)
+{
+	digits = digits.right(10);
+}
+// 5. Validate AFTER cleaning
+if(digits.length() != 10)
+{
+	alert "Enter a valid 10-digit phone number";
+	cancel submit;
+}
+// 6. Format
+formattedPhone =
+	"(" + digits.subString(0,3) + ") " +
+	digits.subString(3,6) + "-" +
+	digits.subString(6,10);
+// 7. Save formatted value
+input.Phone_Number1 = formattedPhone;
+
+
+
+// =====================================================================
+// SCRIPT NAME : storeFilesOnAttachments
+// PATH        : Master-Form-Hot-Tub
+//               > Created or Edited
+//               > Successful form submission
+// TRIGGER     : On Success
+// PURPOSE     :
+//   - Upload photo and drawing attachments to CRM Lead
+//   - Notify Lead owner by email
+//   - Clear follow-up fields based on Lead status
+// =====================================================================
+
+leadId = input.lead_id;
+if(leadId != null && input.Photo_upload != null)
+{
+	for each singleFile in input.Photo_upload
+	{
+		fileToUpload = singleFile;
+		if(singleFile.toString().contains("http"))
+		{
+			fileToUpload = invokeurl
+			[
+				url :singleFile
+				type :GET
+			];
+		}
+		zoho.crm.attachFile("Leads",leadId.toLong(),fileToUpload);
+	}
+	leadRec = zoho.crm.getRecordById("Leads",leadId.toLong());
+	if(leadRec == null)
+	{
+		return;
+	}
+	ownerMap = leadRec.get("Owner");
+	managerEmail = ownerMap.get("email");
+	if(managerEmail == null || managerEmail == "")
+	{
+		return;
+	}
+	crmUrl = "https://crmsandbox.zohocloud.ca/crm/sandboxcreator/tab/Leads/" + leadId;
+	subject = "Questionnaire Submitted – Action Required";
+	message =
+		"A client has submitted the questionnaire.\n\n" +
+		"Lead Name: " + leadRec.get("Full_Name") + "\n" +
+		"Lead Status: " + leadRec.get("Lead_Status") + "\n" +
+		"View Lead: " + crmUrl;
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :managerEmail
+		subject :subject
+		message :message
+	]
+	currentStatus = leadRec.get("Lead_Status");
+	updateMap = Map();
+	doUpdate = false;
+	if(currentStatus == "Questionnaire Sent")
+	{
+		updateMap.put("Follow_Up_1",null);
+		updateMap.put("Follow_Up_2",null);
+		updateMap.put("Follow_Up_3",null);
+		doUpdate = true;
+	}
+	else if(currentStatus == "Additional Info Required")
+	{
+		updateMap.put("Follow_Up_1",null);
+		updateMap.put("Follow_Up_2",null);
+		updateMap.put("Follow_Up_3",null);
+		doUpdate = true;
+	}
+	if(doUpdate)
+	{
+		val = zoho.crm.updateRecord("Leads",leadId.toLong(),updateMap);
+		info val;
+	}
+}
+
+if(input.Upload_Drawing != "")
+{
+	fileToUpload = input.Upload_Drawing;
+	if(singleFile.toString().contains("http"))
+	{
+		fileToUpload = invokeurl
+		[
+			url :singleFile
+			type :GET
+		];
+	}
+	zoho.crm.attachFile("Leads",leadId.toLong(),fileToUpload);
+}
+

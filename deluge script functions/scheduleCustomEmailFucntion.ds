@@ -1,3 +1,19 @@
+<- Comments -> 
+
+This function sends a scheduled custom email based on a reminder record.
+It reads the recipients, subject, message, and scheduled time, sends the email to all listed recipients, and then updates the reminder status to Sent.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  scheduleCustomEmailFucntion
+-Function Name = scheduleCustomEmailFucntion
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.scheduleCustomEmailFucntion(String scheduleId)
 {
 // Argument: reminderId (Int)

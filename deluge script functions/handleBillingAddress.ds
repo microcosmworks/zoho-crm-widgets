@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function handles linking or creating a Billing Address for an Account.
+If an existing Billing Address ID is provided, it reuses it; otherwise, it creates a new Billing Address with a clear, user-friendly name based on the address and Account.
+It returns the Billing Address ID for further linking or an empty value if creation fails.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  handleBillingAddress
+-Function Name = handleBillingAddress
+-Category = standalone
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 string standalone.handleBillingAddress(Map billingAddress,String accountId)
 {
 if(billingAddress == null)

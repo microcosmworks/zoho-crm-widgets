@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function updates the Follow-Up Reminders subform on a Lead.
+It reads the Lead’s current follow-up dates and recipients, then adds three follow-up entries (1, 2, and 3) marked as Pending.
+The updated subform is saved back to the Lead for follow-up tracking and history.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  updateFollowUpSubform
+-Function Name = updateFollowUpSubform
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.updateFollowUpSubform(Int leadId)
 {
 // 1️⃣ Fetch Lead record

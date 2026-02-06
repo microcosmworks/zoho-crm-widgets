@@ -1,3 +1,20 @@
+<- Comments -> 
+
+This function automatically sends a service-specific form email when a Lead is created.
+It selects the correct email template based on the Lead’s Service Type, personalizes it with the Lead’s name and a dynamic form link, and sends the email (unless the Lead has opted out).
+After sending, it updates the Lead’s Email Status to Success or Failed.
+
+<- How to install ->
+
+Zoho Crm Home Page -> Settings > Functions > Create Function
+
+-Display Name =  formSendWhenLeadCreated
+-Function Name = formSendWhenLeadCreated
+-Category = automation
+(paste given below code and arguments will be create automatically )
+
+<- Code ->
+
 void automation.formSendWhenLeadCreated(Int leadId)
 {
 // Purpose: automatically pick the right email template for a lead’s service type,
