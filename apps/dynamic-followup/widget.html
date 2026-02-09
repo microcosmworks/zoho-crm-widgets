@@ -304,15 +304,64 @@
         return null;
       }
 
+      // Ottawa timezone (Eastern Time)
+      const CANADA_TIMEZONE = 'America/Toronto';
+
+      // Get current datetime in Ottawa timezone as YYYY-MM-DDTHH:mm format
+      function getCanadaDateTime() {
+        const now = new Date();
+        return formatToOttawaTime(now);
+      }
+
+      // Convert any Date object to Ottawa timezone string (YYYY-MM-DDTHH:mm)
+      function formatToOttawaTime(date) {
+        const options = {
+          timeZone: CANADA_TIMEZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        };
+        const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+        const get = (type) => parts.find(p => p.type === type)?.value || '';
+        return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+      }
+
+      // Convert CRM datetime string to Ottawa timezone string (YYYY-MM-DDTHH:mm)
+      function toOttawaTime(dateTimeStr) {
+        if (!dateTimeStr) return "";
+        
+        const date = new Date(dateTimeStr);
+        if (isNaN(date.getTime())) return "";
+        
+        return formatToOttawaTime(date);
+      }
+
       function isPastDateTime(dateTimeStr) {
         if (!dateTimeStr) return false;
 
-        const followUpTime = new Date(dateTimeStr).getTime();
-        const now = Date.now();
-
-        return followUpTime < now;
+        // Convert CRM datetime to Ottawa timezone
+        const followUpOttawa = toOttawaTime(dateTimeStr);
+        if (!followUpOttawa) return false;
+        
+        // Get current Ottawa time
+        const canadaNow = getCanadaDateTime();
+        
+        // Compare both in Ottawa timezone
+        return followUpOttawa < canadaNow;
       }
 
+      // For validating user input (already in Ottawa time, no conversion needed)
+      function isPastUserInput(dateTimeStr) {
+        if (!dateTimeStr) return false;
+        
+        // User input is already Ottawa time, compare directly as string
+        const canadaNow = getCanadaDateTime();
+        
+        return dateTimeStr < canadaNow;
+      }
 
 
       function renderFollowUps(lead) {
@@ -323,6 +372,8 @@
         const lastThree = reminders.slice(-3); // ✅ ONLY LAST 3
         const automationEnabled = lead["Allow_Automation"] === true;
 
+        // Get current datetime in Ottawa timezone for min attribute
+        const minDateTime = getCanadaDateTime();
 
         lastThree.forEach((item, index) => {
           const followUpField = `Follow_Up_${index + 1}`;
@@ -348,6 +399,7 @@
                     ? `<span class="terminated-label">Follow-up terminated</span>`
                     : `<input type="datetime-local"
                           value="${toDateTimeLocal(item["Follow_Up_Scheduled"])}"
+                          min="${minDateTime}"
                           ${isEditable ? "" : "disabled"}
                           onfocus="storePreviousValue(this)"
                           onclick="storePreviousValue(this)"
@@ -392,6 +444,15 @@
         // 🚫 Empty value
         if (!value) {
           alert("Re-add date and time");
+          input.value = prevValue;
+          input.focus();
+          if (btn) btn.style.display = "none";
+          return;
+        }
+
+        // 🚫 Past date/time validation (user input is already in Ottawa time)
+        if (isPastUserInput(value)) {
+          alert("Cannot select a past date or time. Please choose a future date/time.");
           input.value = prevValue;
           input.focus();
           if (btn) btn.style.display = "none";
