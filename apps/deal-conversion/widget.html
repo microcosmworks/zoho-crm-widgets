@@ -1127,6 +1127,18 @@
       "STAFF": "Staff"
     };
     
+    // Role display mapping - converts uppercase role values to proper case
+    const ROLE_DISPLAY_MAP = {
+      "BILLING": "Billing",
+      "BOOKING": "Booking",
+      "ADMIN": "Admin",
+      "TENANT": "Tenant"
+    };
+    
+    function getRoleDisplayName(role) {
+      return ROLE_DISPLAY_MAP[role] || role;
+    }
+    
     // Define which "Belongs To" values are parent/account positions
     // These can use "Billing same as Shipping" option
     const PARENT_POSITION_BELONGS_TO = [
@@ -1149,7 +1161,9 @@
       // Always return the belongs to value as the contact role
       // This ensures Contact Type matches the selected Belongs To
       if (!belongsToValue) return [];
-      return [belongsToValue];
+      // Convert to proper case using the mapping
+      const properCaseValue = BELONGS_TO_ACCOUNT_TYPE_MAP[belongsToValue] || ROLE_DISPLAY_MAP[belongsToValue] || belongsToValue;
+      return [properCaseValue];
     }
     
     // Helper function to get account type based on belongs to
@@ -5032,7 +5046,7 @@
       selectedContactRoles.forEach(role => {
         const span = document.createElement("span");
         span.className = "role-chip";
-        span.innerText = role;
+        span.innerText = getRoleDisplayName(role);
         selectedRoles.appendChild(span);
       });
     }
@@ -5866,7 +5880,7 @@
           name: document.getElementById("shippingContactName")?.value?.trim() || contactName.value.trim(),
           email: document.getElementById("shippingContactEmail")?.value?.trim() || contactEmail.value.trim(),
           phone: stripPhoneFormatting(document.getElementById("shippingContactPhone")?.value || contactPhone.value),
-          roles: selectedContactRoles,  // Use user-selected checkbox roles instead of belongsTo-derived roles
+          roles: selectedContactRoles.map(getRoleDisplayName),  // Convert to proper case (e.g., "Booking" instead of "BOOKING")
           doNotInvoice: false
         },
 
